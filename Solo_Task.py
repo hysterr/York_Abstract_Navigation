@@ -1,7 +1,7 @@
-# from Graph import Create_Entity
+#%% Importation
 from Environment import Graph, Prism
 
-#%% Connections 
+#%% Environment Connections
 risk_matrix = {
     "L"  : 0.95,
     "ML" : 0.90,
@@ -79,48 +79,15 @@ connections = [
         [29, 30, 0.4, risk_matrix["ML"]],
     ]
 
-#%% Create default environment for the human and the robot 
+
+#%% Create Default Environment for Robot
 num_nodes = max(max(connections))
 
 agent = Graph(n_nodes=num_nodes, n_probs=3) 
 agent.Create_Connections(connections)
 agent.Create_Map()
 
-human = Graph(n_nodes=num_nodes, n_probs=2)
-human.Create_Connections(connections)
-human.Create_Map(agent.map)
-
-#%% Solve path planning for human using Dijkstra's
-start_human, final_human = (30, 6)
-human_path_dist, human_dist_dist, human_dist_prob = human.Dijkstra(start_human, final_human, method="Distance")
-human_path_prob, human_prob_dist, human_prob_prob = human.Dijkstra(start_human, final_human, method="Probability")
-
-print(human_path_dist)
-print(human_path_prob)
-
-#%% Solve Agent's Path
-# Using the path produced for the human, we need to adjust the heated map for the agent, 
-# so this can create a better representation of the safety of the environment
-# agent.Update_Heat(connections, human_path_dist, scale=0.75)
-
-# Solve path planning for human using Dijkstra's
-start_agent, final_agent = (16, 10)
-agent_path_dist, agent_dist_dist, agent_dist_prob = agent.Dijkstra(start_agent, final_agent, method="Distance")
-agent_path_prob, agent_prob_dist, agent_prob_prob = agent.Dijkstra(start_agent, final_agent, method="Probability")
-
-print(agent_path_dist, agent_dist_prob)
-print(agent_path_prob, agent_prob_prob)
-
-# Model Checking
-# Create and simulate Prism Model
-prism_path = '/Users/jordanhamilton/Documents/PRISM/bin/prism'
-action = Prism.Generate_Action(agent.map, 1, initial_guess=agent_path_prob)
-code = Prism.Create_Model(agent.map, start_agent, final_agent, action[0,:])
-file_path, model_name = Prism.Export_Model(code, file_name="Model_1.prism")
-output = Prism.Simulate(prism_path, file_path+model_name, output_files=True)
-print("PRISM Path Validation is: ", output)
-
-#%% Solve Task
+#%% Create Task
 start_node = 22 
 task = [start_node, 16, 10, 7, 3, 27, 29]
 
@@ -145,8 +112,6 @@ for i in range(len(task)):
 mission = Graph(n_nodes=num_nodes, n_probs=3)
 mission.Create_Connections(t_conns)
 mission.Create_Map()
-
-# mission_path, mission_dist, mission_prob = mission.Dijkstra(22, 16, method='Probability')
 
 # Find the least distance path
 import itertools
@@ -189,15 +154,3 @@ for ind in prob_ind:
         s2 = l_dist_path[i+1]
         path, dist_1, _ = agent.Dijkstra(s1, s2, method="Probability")
         print(path, dist_1)
-    
-
-
-    
-
-
-
-
-
-
-
-
