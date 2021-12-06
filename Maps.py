@@ -14,6 +14,56 @@ def Risk():
     return risk_matrix
 
 
+def LivingArea(risk_matrix):
+    connections = [
+        [ 1,  2, 0.50, risk_matrix["L"]],
+        [ 1,  6, 0.75, risk_matrix["L"]],
+        [ 2,  3, 0.50, risk_matrix["L"]],
+        [ 2,  6, 0.60, risk_matrix["L"]],
+        [ 2,  7, 0.80, risk_matrix["L"]],
+        [ 3,  4, 0.55, risk_matrix["L"]], 
+        [ 3,  6, 0.80, risk_matrix["L"]],
+        [ 3,  7, 0.60, risk_matrix["L"]],
+        [ 4,  5, 0.55, risk_matrix["L"]],
+        [ 4,  7, 0.80, risk_matrix["L"]],
+        [ 4,  8, 0.80, risk_matrix["L"]],
+        [ 4, 10, 1.10, risk_matrix["L"]],
+        [ 5,  8, 0.60, risk_matrix["L"]],
+        [ 6,  7, 0.50, risk_matrix["L"]],
+        [ 6,  9, 0.58, risk_matrix["L"]],
+        [ 7,  8, 1.20, risk_matrix["L"]],
+        [ 7, 10, 0.65, risk_matrix["L"]],
+        [ 8, 10, 0.75, risk_matrix["L"]],
+        [ 8, 13, 1.05, risk_matrix["L"]],
+        [ 9, 11, 0.65, risk_matrix["L"]],
+        [ 9, 12, 0.75, risk_matrix["L"]],
+        [ 9, 14, 0.85, risk_matrix["L"]],
+        [10, 12, 0.60, risk_matrix["L"]],
+        [10, 13, 0.55, risk_matrix["L"]],
+        [10, 16, 1.20, risk_matrix["L"]],
+        [11, 12, 1.40, risk_matrix["L"]],
+        [11, 14, 0.40, risk_matrix["L"]],
+        [12, 13, 1.15, risk_matrix["L"]],
+        [12, 14, 0.65, risk_matrix["L"]],
+        [12, 15, 0.70, risk_matrix["L"]],
+        [12, 16, 0.65, risk_matrix["L"]],
+        [13, 16, 0.85, risk_matrix["L"]],
+        [14, 15, 0.30, risk_matrix["L"]],
+        [14, 17, 0.45, risk_matrix["L"]],
+        [15, 16, 0.70, risk_matrix["L"]],
+        [15, 17, 0.40, risk_matrix["L"]],
+        [15, 18, 0.90, risk_matrix["L"]],
+        [16, 18, 0.50, risk_matrix["L"]],
+        [17, 18, 1.30, risk_matrix["L"]],
+        [17, 19, 0.90, risk_matrix["L"]],
+        [17, 20, 1.60, risk_matrix["L"]],
+        [18, 19, 1.60, risk_matrix["L"]],
+        [18, 20, 0.70, risk_matrix["L"]],
+        [19, 20, 1.20, risk_matrix["L"]]
+    ]
+    
+    return connections
+    
 def Bungalow(risk_matrix):
     # The connections for the environment compiled as a list of lists. Each list 
     # within a list contains four peices of information: 

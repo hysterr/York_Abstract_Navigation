@@ -1,11 +1,11 @@
 #%% Importation
 from Environment import Graph, Prism
-from Maps import Risk, Bungalow
+from Maps import Risk, Bungalow, LivingArea
 
 #%% Create Environemnt
 # Create connections for the environment
 risk_matrix = Risk()
-connections = Bungalow(risk_matrix)
+connections = LivingArea(risk_matrix)
 
 # Create environment for the agent
 num_nodes = max(max(connections))
@@ -14,8 +14,8 @@ agent.Create_Connections(connections)
 agent.Create_Map()
 
 #%% Create Task
-start_node = 22 
-task = [start_node, 16, 10, 7, 3, 27, 29]
+start_node = 11
+task = [start_node, 1, 5, 3, 9]
 
 # For each node location that creates the task, we need to evaluate movement between 
 # the nodes. This is first achieved by iterating thorugh the list to create connections, 
