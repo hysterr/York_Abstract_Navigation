@@ -2,6 +2,7 @@
 from Environment import Graph, Prism
 from Maps import Risk, Bungalow, LivingArea
 from copy import deepcopy
+import numpy as np
 
 #%% ===========================================================================
 # Create Environment Objects
@@ -151,13 +152,20 @@ while not complete:
         # If the index has values, the agent has covered enough distance to pass some 
         # nodes. Therefore the position of the agent is the index + 1.
         if idx:
-            agent.position = agent.paths.selected.path[idx[-1]+1]
+            new_position = agent.paths.selected.path[idx[-1]+1]
+
+            # If the new position created this time-step is a new position when compared to the 
+            # previous time-step, i.e. the agent transitions to a new node... we will update this
+            # as a new position in the agent's historic information.
+            if new_position != agent.position:
+                agent.paths.history = np.vstack((agent.paths.history, np.array([simulation_time, new_position])))
+
+            agent.position = new_position
 
         # If the index IS EMPTY, the agent has not covered enough distance to pass any of 
         # the nodes along the path. This means the most recent node was the start node. 
         else:
             agent.position = agent.paths.selected.path[0]
-
 
     # Agent has reached the waypoint, and therefore the task should be completed and moved onto 
     # the next task waypoint in agent.task.task.  

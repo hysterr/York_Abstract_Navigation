@@ -2,6 +2,7 @@
 import heapq, random, glob, subprocess
 import numpy as np
 from copy import deepcopy
+import numpy as np
 
 # =============================================================================
 # Environment Creation Interface
@@ -25,12 +26,15 @@ class Graph:
         # Task Specific Variables 
         self.task = self.__Task()
         
+    # =============================================================================
     # Sub-Class for Environment Paths
+    # =============================================================================
     class __Path: 
         def __init__(self):
             self.selected = self.__Instance()
             self.probability = self.__Instance()
             self.distance = self.__Instance()
+            self.history = np.empty(shape=(0,2))
             
         class __Instance:
             def __init__(self):
@@ -43,7 +47,9 @@ class Graph:
                 self.progress_dist = None # Progress variable for simulation. 
                 self.progress_time = None # Progress variable for time along the path.
         
+    # =============================================================================
     # Sub-Class for Environment Tasks 
+    # =============================================================================
     class __Task: 
         def __init__(self):
             self.task = None
@@ -51,11 +57,14 @@ class Graph:
             self.position = 0
             self.complete = list()
         
+    # =============================================================================
+    # Create Connections and Add Connections 
+    # =============================================================================
     def Create_Connections(self, connections):
         # Create connections between the nodes
         for c in connections:
             self.Add_Connection(c[0], c[1], c[2], c[3])
-        
+            
     def Add_Connection(self, start, final, distance, probability=None):
         self.dist_array[start-1, final-1] = distance
         self.dist_array[final-1, start-1] = distance
@@ -67,7 +76,13 @@ class Graph:
             self.prob_array[start-1, final-1] = probability
             self.prob_array[final-1, start-1] = probability
             
-            
+        
+    # =============================================================================
+    # Create map
+    # - Create the environment map based on the probability and distance matrices
+    # - a previously defined map can be used to create a second instance. 
+    #   - This prevents random generation from impacting an environment.     
+    # =============================================================================
     def Create_Map(self, env_map=None):
         # The input variable env_map allows this instance to be created based on 
         # a previously created map. However, if this value is None, we should create 
@@ -123,7 +138,11 @@ class Graph:
                         self.map[node][conn]['Fail'] = np.round(self.map[node][conn]["Fail"] + self.map[node][conn]['Return'], 2)
                         self.map[node][conn]['Return'] = 0
                         
-        
+    # =============================================================================
+    # Update heat map    
+    # - Paths can be input into the class to produce a scalable map of intensity,
+    #   allowing the environment to have an adjusted heat map for probabilities.
+    # =============================================================================
     def Update_Heat(self, connections, path, scale=0.5):
         # Create a heat map based on the default map.
         self.heat_map = deepcopy(self.map)
@@ -138,6 +157,9 @@ class Graph:
                 self.heat_map[c[0]][c[1]]["Return"] += self.heat_map[c[0]][c[1]]["Success"]
                 
     
+    # =============================================================================
+    # Create Random Probabilities for Environment Map
+    # =============================================================================
     def __Random_Probabilities(self, success):
         total = 0
         
@@ -159,6 +181,9 @@ class Graph:
         return fail, ret, total
            
 
+    # =============================================================================
+    # Dijkstra's Algorithm for Path Finding
+    # =============================================================================
     def Dijkstra(self, start, final, path_class=None, method="Distance", secondary="Success"):       
         if method == "Distance":
             # We are using Dijkstra's algorithm to minimise distance.
@@ -281,12 +306,23 @@ class Graph:
         else: 
             return path
     
-    # Method for validating a created path using the PRISM class.
+    # =============================================================================
+    #  Method for validating a created path using the PRISM class.
+    # =============================================================================
     def Validate_Path(self, prism_path, path):
+        
+        # To validate the path using PRISM we need to create the appropriate 
+        # actions for the PRISM model using the created path.
         action = Prism.Generate_Action(self.map, num_solutions=1, initial_guess=path)
+        
+        # Generate PRISM code and compile the PRISM model.
         code = Prism.Create_Model(self.map, self.position, path[-1], action[0,:])
         file_path, model_name = Prism.Export_Model(code, file_name="Model_1.prism")
+        
+        # Run the PRISM model and obtain the validation value from the PCTL.
         validation = Prism.Simulate(prism_path, file_path+model_name, output_files=True)
+        
+        
         return validation
     
     def TSP_Cowboy(self, connections, task):
