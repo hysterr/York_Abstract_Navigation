@@ -8,13 +8,49 @@ from copy import deepcopy
 # =============================================================================
 class Graph:
     def __init__(self, n_nodes, n_probs=3):
+        # Setup nodes and variables
         self.n_nodes = n_nodes
         self.n_probs = n_probs
         self.dist_array = np.zeros(shape=(n_nodes, n_nodes))
         self.prob_array = np.zeros(shape=(n_nodes, n_nodes))
         self.map = dict() 
         self.heat_map = dict()
-         
+        
+        # Variables for information.
+        self.position = None
+        self.path = None
+        self.paths = self.__Path()
+        self.speed = 0.5
+        
+        # Task Specific Variables 
+        self.task = self.__Task()
+        
+    # Sub-Class for Environment Paths
+    class __Path: 
+        def __init__(self):
+            self.selected = self.__Instance()
+            self.probability = self.__Instance()
+            self.distance = self.__Instance()
+            
+        class __Instance:
+            def __init__(self):
+                self.path = None # Actual path 
+                self.length = None # Distance of the path
+                self.prob = None # Probability of completing the path (Dijkstra)
+                self.time = None # Time expected to complete the path 
+                self.valid = None # Validation probability from Prism.
+                self.dist_cum = None # Iterative cummulative distance of the path.
+                self.progress_dist = None # Progress variable for simulation. 
+                self.progress_time = None # Progress variable for time along the path.
+        
+    # Sub-Class for Environment Tasks 
+    class __Task: 
+        def __init__(self):
+            self.task = None
+            self.progress = None
+            self.position = 0
+            self.complete = list()
+        
     def Create_Connections(self, connections):
         # Create connections between the nodes
         for c in connections:
@@ -123,7 +159,7 @@ class Graph:
         return fail, ret, total
            
 
-    def Dijkstra(self, start, final, method="Distance", secondary="Success"):       
+    def Dijkstra(self, start, final, path_class=None, method="Distance", secondary="Success"):       
         if method == "Distance":
             # We are using Dijkstra's algorithm to minimise distance.
             nodes = {k : np.inf for k in self.map.keys()}
@@ -232,13 +268,46 @@ class Graph:
                 distance += self.map[x_1][x_2]["Distance"]
             probability = nodes[final]
             
-        return path, distance, probability
+        if path_class is not None:
+            # Create the exportation for the class.
+            path_class.path = path
+            path_class.length = distance
+            path_class.prob = probability
+            path_class.valid = None # Reset the validation value.
+            
+        
+            return self
+        
+        else: 
+            return path
+    
+    # Method for validating a created path using the PRISM class.
+    def Validate_Path(self, prism_path, path):
+        action = Prism.Generate_Action(self.map, num_solutions=1, initial_guess=path)
+        code = Prism.Create_Model(self.map, self.position, path[-1], action[0,:])
+        file_path, model_name = Prism.Export_Model(code, file_name="Model_1.prism")
+        validation = Prism.Simulate(prism_path, file_path+model_name, output_files=True)
+        return validation
+    
+    def TSP_Cowboy(self, connections, task):
+        # For each node location that creates the task, we need to evaluate movement between 
+        # the nodes. This is first achieved by iterating thorugh the list to create connections, 
+        # and from the connections, using Dijkstra's algorithm to obtain the distances and 
+        # probabilities.
+        t_conns = list()
+        for i in range(len(task)):
+            for j in range(i+1, len(task)):
+                start = task[i] # first node
+                final = task[j] # second node
+                
+                # Obtain path from Dijkstra's
+                agent_path_dist, agent_dist_dist, agent_dist_prob = self.agent.Dijkstra(start, final, method="Distance")
+                agent_path_prob, agent_prob_dist, agent_prob_prob = self.agent.Dijkstra(start, final, method="Probability")
+                
+                # Append values to the t_conn list.
+                t_conns.append([task[i], task[j], round(agent_prob_dist, 2), round(agent_prob_prob, 6)])
     
     
-def TSP(self, connections, task):
-    pass
-
-
 # =============================================================================
 # PRISM Interface Class
 # =============================================================================
