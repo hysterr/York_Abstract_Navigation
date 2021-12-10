@@ -293,18 +293,20 @@ class Graph:
                 distance += self.map[x_1][x_2]["Distance"]
             probability = nodes[final]
             
+        # The method input has a "path_class" which indicates a map has been 
+        # applied for which the path solution can been appended to.
         if path_class is not None:
             # Create the exportation for the class.
             path_class.path = path
             path_class.length = distance
             path_class.prob = probability
             path_class.valid = None # Reset the validation value.
-            
-        
             return self
         
+        # The method does not have a class to update the values in. Therefore, 
+        # we will return the raw values for the path, distance and probability.
         else: 
-            return path
+            return path, distance, probability
     
     # =============================================================================
     #  Method for validating a created path using the PRISM class.
@@ -324,26 +326,7 @@ class Graph:
         
         
         return validation
-    
-    def TSP_Cowboy(self, connections, task):
-        # For each node location that creates the task, we need to evaluate movement between 
-        # the nodes. This is first achieved by iterating thorugh the list to create connections, 
-        # and from the connections, using Dijkstra's algorithm to obtain the distances and 
-        # probabilities.
-        t_conns = list()
-        for i in range(len(task)):
-            for j in range(i+1, len(task)):
-                start = task[i] # first node
-                final = task[j] # second node
-                
-                # Obtain path from Dijkstra's
-                agent_path_dist, agent_dist_dist, agent_dist_prob = self.agent.Dijkstra(start, final, method="Distance")
-                agent_path_prob, agent_prob_dist, agent_prob_prob = self.agent.Dijkstra(start, final, method="Probability")
-                
-                # Append values to the t_conn list.
-                t_conns.append([task[i], task[j], round(agent_prob_dist, 2), round(agent_prob_prob, 6)])
-    
-    
+     
 # =============================================================================
 # PRISM Interface Class
 # =============================================================================
