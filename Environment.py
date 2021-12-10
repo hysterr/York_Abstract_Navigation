@@ -10,12 +10,12 @@ import numpy as np
 class Graph:
     def __init__(self, n_nodes, n_probs=3):
         # Setup nodes and variables
-        self.n_nodes = n_nodes
-        self.n_probs = n_probs
+        self.n_nodes = n_nodes  # Number of nodes in the environment
+        self.n_probs = n_probs  # Number of probabilities (success, fail, return)
         self.dist_array = np.zeros(shape=(n_nodes, n_nodes))
         self.prob_array = np.zeros(shape=(n_nodes, n_nodes))
-        self.map = dict() 
-        self.heat_map = dict()
+        self.map = dict()       # Default environment map
+        self.heat_map = dict()  # Adjusted heatmap.
         
         # Variables for information.
         self.position = None
@@ -31,19 +31,19 @@ class Graph:
     # =============================================================================
     class __Path: 
         def __init__(self):
-            self.selected = self.__Instance()
-            self.probability = self.__Instance()
-            self.distance = self.__Instance()
-            self.history = np.empty(shape=(0,2))
+            self.selected = self.__Instance()       # Selected path for simulated
+            self.probability = self.__Instance()    # Path created using Dijkstra (probability)
+            self.distance = self.__Instance()       # Path created using Dijkstra (distance)
+            self.history = np.empty(shape=(0,2))    # Historic path information for the agent
             
         class __Instance:
             def __init__(self):
-                self.path = None # Actual path 
-                self.length = None # Distance of the path
-                self.prob = None # Probability of completing the path (Dijkstra)
-                self.time = None # Time expected to complete the path 
-                self.valid = None # Validation probability from Prism.
-                self.dist_cum = None # Iterative cummulative distance of the path.
+                self.path = None        # Actual path 
+                self.length = None      # Distance of the path
+                self.prob = None        # Probability of completing the path (Dijkstra)
+                self.time = None        # Time expected to complete the path 
+                self.valid = None       # Validation probability from Prism.
+                self.dist_cum = None    # Iterative cummulative distance of the path.
                 self.progress_dist = None # Progress variable for simulation. 
                 self.progress_time = None # Progress variable for time along the path.
         
