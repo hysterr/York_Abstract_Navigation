@@ -33,7 +33,7 @@ PRISM_PATH = '/Users/jordanhamilton/Documents/PRISM/bin/prism'
 #%% ===========================================================================
 # Mission Definement
 # =============================================================================
-agent.position = 11 # current position of the robot (node)
+agent.position = 1 # current position of the robot (node)
 human.position = 18 # current position of the human (node)
 
 robot_pos_ind  = 0  # current index of the robot along the path.
@@ -50,7 +50,8 @@ agent.speed = 0.1 # speed in m/s for robot
 #         4. Check cupboard at 3 (locate item)
 #                4.1 - Request human retrieves item and takes to work surface (4)
 #         5. Move to table at 10 (Hold...)
-agent.task.task = [1, 9, 10, 3, 10]
+# agent.task.task = [1, 9, 10, 3, 10]
+agent.task.task = [5, 8, 10, 1, 2, 8, 15, 8, 2, 1, 2, 4, 5]
 agent.task.position = 0 # Set the index of the agent's task to 0. 
 agent.task.progress = [agent.task.task[agent.task.position]]
 
@@ -58,7 +59,8 @@ agent.task.progress = [agent.task.task[agent.task.position]]
 # such as "check" or "hold". The status of each intermediate task is described using "C" and "H"
 # and these holders will be used to request the human perform some action when the robot reaches 
 # one of the these states.
-mission_task_holders = ["C", "C", "C", "C", "H"]
+# mission_task_holders = ["C", "C", "C", "C", "H"]
+mission_task_holders = ['C', 'C', 'C', 'H', 'C', 'C', 'H', 'C', 'C', 'C', 'C', 'C', 'H']
 
 #%% ===========================================================================
 # Travelling Salesman Solution for the Mission
@@ -82,8 +84,8 @@ task.insert(0, start_node)
 task_holders.insert(0, "S")
 
 # TEST TASKS 
-task = [1, 5, 8, 10, 1, 2, 8, 15, 8, 2, 1, 2, 4, 5]
-task_holders = ['S', 'C', 'C', 'C', 'H', 'C', 'C', 'H', 'C', 'C', 'C', 'C', 'C', 'H']
+# task = [1, 5, 8, 10, 1, 2, 8, 15, 8, 2, 1, 2, 4, 5]
+# task_holders = ['S', 'C', 'C', 'C', 'H', 'C', 'C', 'H', 'C', 'C', 'C', 'C', 'C', 'H']
 
 # Previously, the agent and human classes were created based on a set of connections
 # which were imported from Maps. However, we are going to create a new map using 

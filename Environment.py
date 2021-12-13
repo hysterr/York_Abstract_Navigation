@@ -154,7 +154,10 @@ class Graph:
             # the path, the success should be adjusted
             if (c[0] in path) or (c[1] in path):
                 self.heat_map[c[0]][c[1]]["Success"] *= scale
-                self.heat_map[c[0]][c[1]]["Return"] += self.heat_map[c[0]][c[1]]["Success"]
+                self.heat_map[c[0]][c[1]]["Fail"] += self.heat_map[c[0]][c[1]]["Success"]
+
+                self.heat_map[c[1]][c[0]]["Success"] *= scale
+                self.heat_map[c[1]][c[0]]["Fail"] += self.heat_map[c[1]][c[0]]["Success"]                
                 
     
     # =============================================================================
@@ -184,10 +187,15 @@ class Graph:
     # =============================================================================
     # Dijkstra's Algorithm for Path Finding
     # =============================================================================
-    def Dijkstra(self, start, final, path_class=None, method="Distance", secondary="Success"):       
+    def Dijkstra(self, start, final, path_class=None, method="Distance", secondary="Success", map=None):       
+        # We want to be able to use updated heatmaps, so if the map variable is None, use the default map, 
+        # else, set the map to be the map passed into the method. 
+        if map is None:
+            map = self.map
+
         if method == "Distance":
             # We are using Dijkstra's algorithm to minimise distance.
-            nodes = {k : np.inf for k in self.map.keys()}
+            nodes = {k : np.inf for k in map.keys()}
             nodes[start] = 0 # Set the edge we are starting at to the be min value.
             prev_node = dict()
             
@@ -201,7 +209,7 @@ class Graph:
                 
                 # Iterate through each neighbour at the current node location
                 # for neighbour, edge_dist in self.map[curr_node].items():
-                for connection in self.map[curr_node].items():
+                for connection in map[curr_node].items():
                     # the connection variable will return a list with two values:
                     #  - the connecting neighbour
                     #  - and the values of distance, success.... etc within the map for this neighbour
@@ -222,7 +230,7 @@ class Graph:
         
         elif method == "Probability":
             # We are using Dijkstra's to maximise probability.
-            nodes = {k : 0 for k in self.map.keys()}
+            nodes = {k : 0 for k in map.keys()}
             nodes[start] = 1 # Set the edge we are starting at to the maximum expected value.
             prev_node = dict()
             
@@ -237,7 +245,7 @@ class Graph:
                 
                 # Iterate through each neighbour at the current node location
                 # for neighbour, edge_dist in self.map[curr_node].items():
-                for connection in self.map[curr_node].items():
+                for connection in map[curr_node].items():
                     # the connection variable will return a list with two values:
                     #  - the connecting neighbour
                     #  - and the values of distance, success.... etc within the map for this neighbour
@@ -282,7 +290,7 @@ class Graph:
             for i in range(len(path)-1):
                 x_1 = path[i]
                 x_2 = path[i+1]
-                probability *= (self.map[x_1][x_2]["Success"] + self.map[x_1][x_2]["Return"])
+                probability *= (map[x_1][x_2]["Success"] + map[x_1][x_2]["Return"])
             distance = nodes[final]
         
         elif method == "Probability":
@@ -290,7 +298,7 @@ class Graph:
             for i in range(len(path)-1):
                 x_1 = path[i]
                 x_2 = path[i+1]
-                distance += self.map[x_1][x_2]["Distance"]
+                distance += map[x_1][x_2]["Distance"]
             probability = nodes[final]
             
         # The method input has a "path_class" which indicates a map has been 
