@@ -50,8 +50,7 @@ agent.speed = 0.1 # speed in m/s for robot
 #         4. Check cupboard at 3 (locate item)
 #                4.1 - Request human retrieves item and takes to work surface (4)
 #         5. Move to table at 10 (Hold...)
-# agent.task.task = [1, 9, 10, 3, 10]
-agent.task.task = [5, 8, 10, 1, 2, 8, 15, 8, 2, 1, 2, 4, 5]
+agent.task.task = [1, 9, 10, 3, 10]
 agent.task.position = 0 # Set the index of the agent's task to 0. 
 agent.task.progress = [agent.task.task[agent.task.position]]
 
@@ -83,9 +82,9 @@ task_holders = deepcopy(mission_task_holders)
 task.insert(0, start_node)
 task_holders.insert(0, "S")
 
-# TEST TASKS 
-# task = [1, 5, 8, 10, 1, 2, 8, 15, 8, 2, 1, 2, 4, 5]
-# task_holders = ['S', 'C', 'C', 'C', 'H', 'C', 'C', 'H', 'C', 'C', 'C', 'C', 'C', 'H']
+# --- TEST TASKS ----
+task = [1, 5, 8, 10, 1, 2, 8, 15, 8, 2, 1, 2, 4, 5]
+task_holders = ['S', 'C', 'C', 'C', 'H', 'C', 'C', 'H', 'C', 'C', 'C', 'C', 'C', 'H']
 
 # Previously, the agent and human classes were created based on a set of connections
 # which were imported from Maps. However, we are going to create a new map using 

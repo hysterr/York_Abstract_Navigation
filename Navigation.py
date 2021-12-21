@@ -26,7 +26,7 @@ human.Create_Map(agent.map)
 # We will use PRISM to validate paths.
 PRISM_PATH = '/Users/jordanhamilton/Documents/PRISM/bin/prism'
 
-# =============================================================================
+#%% ===========================================================================
 # Solve Initial Path for Agent
 # =============================================================================
 agent_start = 25
@@ -35,9 +35,21 @@ agent_final = 17
 agent_path_dist, agent_dist_dist, agent_dist_prob = agent.Dijkstra(agent_start, agent_final, path_class=None, method="Distance")
 agent_path_prob, agent_prob_dist, agent_prob_prob = agent.Dijkstra(agent_start, agent_final, path_class=None, method="Probability")
 
+# validate the path for the agent 
+action_1 = Prism.Generate_Action(agent.map, 1, agent_path_dist) 
+code = Prism.Create_Model(agent.map, agent_start, agent_final, action_1[0,:])
+file_path, model_name = Prism.Export_Model(code, file_name="Model_1.prism")
+valid_1 = Prism.Simulate(PRISM_PATH, file_path+model_name, output_files=True)
+
+action_2 = Prism.Generate_Action(agent.map, 1, agent_path_prob) 
+code = Prism.Create_Model(agent.map, agent_start, agent_final, action_2[0,:])
+file_path, model_name = Prism.Export_Model(code, file_name="Model_1.prism")
+valid_2 = Prism.Simulate(PRISM_PATH, file_path+model_name, output_files=True)
+
 print("Agent Initial")
-print(agent_path_dist)
-print(agent_path_prob)
+print(agent_path_dist, round(valid_1,4))
+print(agent_path_prob, round(valid_2,4))
+
 
 # =============================================================================
 # Solve Initial Path for Human
@@ -57,9 +69,21 @@ print(human_path_prob)
 # =============================================================================
 agent.Update_Heat(connections, path=human_path_dist, scale=0.5)
 
+# Validate path for agent 
+action_3 = Prism.Generate_Action(agent.heat_map, 1, agent_path_prob) 
+code = Prism.Create_Model(agent.heat_map, agent_start, agent_final, action_3[0,:])
+file_path, model_name = Prism.Export_Model(code, file_name="Model_1.prism")
+valid_3 = Prism.Simulate(PRISM_PATH, file_path+model_name, output_files=True)
+print("Agent old path is now: ", round(valid_3, 4))
+
 agent_path_dist1, agent_dist_dist1, agent_dist_prob1 = agent.Dijkstra(agent_start, agent_final, path_class=None, method="Distance", map=agent.heat_map)
 agent_path_prob1, agent_prob_dist1, agent_prob_prob1 = agent.Dijkstra(agent_start, agent_final, path_class=None, method="Probability", map=agent.heat_map)
 
-print("Agent Initial")
-print(agent_path_dist)
-print(agent_path_prob)
+# Validate path for agent
+action_4 = Prism.Generate_Action(agent.heat_map, 1, agent_path_prob1) 
+code = Prism.Create_Model(agent.heat_map, agent_start, agent_final, action_4[0,:])
+file_path, model_name = Prism.Export_Model(code, file_name="Model_1.prism")
+valid_4 = Prism.Simulate(PRISM_PATH, file_path+model_name, output_files=True)
+
+print("Agent Updated")
+print(agent_path_prob1, round(valid_4, 4))
