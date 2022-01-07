@@ -1,4 +1,4 @@
-#%% Importation
+ #%% Importation
 from Environment import Graph, Prism
 from Maps import Risk, Bungalow, LivingArea
 from copy import deepcopy

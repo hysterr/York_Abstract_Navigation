@@ -7,6 +7,11 @@ import numpy as np
 # =============================================================================
 # Environment Creation Interface
 # =============================================================================
+''' The environment creates an interface for the entity which stores information 
+    relating to the entities interpretation of the environment. The graph class 
+    also creates all connections and maps for the environment, and includes path 
+    finding using Dijkstra's algorithm.    
+'''
 class Graph:
     def __init__(self, n_nodes, n_probs=3):
         # Setup nodes and variables
@@ -191,7 +196,7 @@ class Graph:
         # We want to be able to use updated heatmaps, so if the map variable is None, use the default map, 
         # else, set the map to be the map passed into the method. 
         if map is None:
-            map = self.map
+            map = self.map  # Set the map to be the default map
 
         if method == "Distance":
             # We are using Dijkstra's algorithm to minimise distance.
@@ -267,6 +272,7 @@ class Graph:
                         # Push the connection for the current probability and neighbour 
                         heapq.heappush(connections, (new_probability, neighbour))
         
+        # If the input method was not recognised.
         else:
             print("Optional methods are: 'Distance' or 'Probability'")
             
