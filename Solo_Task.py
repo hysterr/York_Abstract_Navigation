@@ -1,11 +1,21 @@
-#%% Importation
+ #%% Preamble
 from Environment import Graph, Prism
 from Maps import Risk, Bungalow, LivingArea
+from Mission import Mission
+from Simulate import Simulation
+from copy import deepcopy
+from itertools import permutations
+import numpy as np
 
-#%% Create Environemnt
+# We will use PRISM to validate paths.
+PRISM_PATH = '/Users/jordanhamilton/Documents/PRISM/bin/prism'
+
+#%% ===========================================================================
+# Create Environment Objects
+# =============================================================================
 # Create connections for the environment
 risk_matrix = Risk()
-connections = LivingArea(risk_matrix)
+connections = Bungalow(risk_matrix)
 
 # Create environment for the agent
 num_nodes = max(max(connections))
@@ -13,70 +23,74 @@ agent = Graph(n_nodes=num_nodes, n_probs=3)
 agent.Create_Connections(connections)
 agent.Create_Map()
 
-#%% Create Task
-start_node = 11
-task = [start_node, 1, 5, 3, 9]
+#%% ===========================================================================
+# Mission Definement
+# =============================================================================
+agent.dynamics.position = 22 # current position of the robot (node)
 
-# For each node location that creates the task, we need to evaluate movement between 
-# the nodes. This is first achieved by iterating thorugh the list to create connections, 
-# and from the connections, using Dijkstra's algorithm to obtain the distances and 
-# probabilities.
-t_conns = list()
-for i in range(len(task)):
-    for j in range(i+1, len(task)):
-        start = task[i] # first node
-        final = task[j] # second node
-        
-        # Obtain path from Dijkstra's
-        agent_path_dist, agent_dist_dist, agent_dist_prob = agent.Dijkstra(start, final, method="Distance")
-        agent_path_prob, agent_prob_dist, agent_prob_prob = agent.Dijkstra(start, final, method="Probability")
-        
-        # Append values to the t_conn list.
-        t_conns.append([task[i], task[j], round(agent_prob_dist, 2), round(agent_prob_prob, 6)])
-    
+# Set a task for the agent using environment nodes.
+# agent.mission.tasks = [17, 11, 26, 2, 4, 15, 19, 22]
+agent.mission.tasks = [19, 17, 15, 11, 2, 4, 26, 22]
+agent.mission.position = 0 # Set the index of the agent's task to 0. 
+agent.mission.progress = [agent.mission.tasks[agent.mission.position]]
 
-mission = Graph(n_nodes=num_nodes, n_probs=3)
-mission.Create_Connections(t_conns)
-mission.Create_Map()
 
-# Find the least distance path
-import itertools
-task = task[1:]
-perm = list(itertools.permutations(task))
+# Each location along the mission/task will have an intermediate task for the robot to perform
+# such as "check" or "hold". The status of each intermediate task is described using "C" and "H"
+# and these holders will be used to request the human perform some action when the robot reaches 
+# one of the these states.
+agent.mission.headers = ['C', 'C', 'C', 'H', 'C', 'C', 'C', 'H']
 
-path_dists = list()
-path_probs = list()
+#%% ===========================================================================
+# Create Mission
+# =============================================================================
+mission = Mission(agent)
+mission.environment = Graph(n_nodes=num_nodes, n_probs=3)
+mission.environment.Create_Connections(mission.connections)
+mission.environment.Create_Map()
 
-for path in perm:
-    dist = 0
-    prob = 1
-    
-    for i in range(len(path)-1):
-        if i == 0:
-            s1 = start_node
-            s2 = path[i]
-        else:
-            s1 = path[i]
-            s2 = path[i+1]
-            
-        dist += mission.map[s1][s2]['Distance']
-        prob *= mission.map[s1][s2]['Success']
-        
-    path_dists.append(dist)
-    path_probs.append(prob)    
-    
-dist_ind = [i for i, x in enumerate(path_dists) if x == min(path_dists)]
-prob_ind = [i for i, x in enumerate(path_probs) if x == max(path_probs)]
+# Create mission breakdown 
+sub_tasks = mission.Breakdown() # Create mission breakdown 
+sub_tasks = mission.Permute(sub_tasks)     # Create all permutations of the mission
+sub_tasks = mission.Solve(sub_tasks)
 
-for ind in prob_ind:
-    # Create path
-    l_dist_path = list(perm[ind])
-    l_dist_path.insert(0, start_node)
-    print("Creating least distance path...")
-    print(l_dist_path)
-    print("Creating local solution...")
-    for i in range(len(l_dist_path)-1):
-        s1 = l_dist_path[i]
-        s2 = l_dist_path[i+1]
-        path, dist_1, _ = agent.Dijkstra(s1, s2, method="Probability")
-        print(path, dist_1)
+#%% ===========================================================================
+# Simulation
+# =============================================================================
+# Reset the agent for simulation 
+agent = Simulation.Reset(agent)
+
+for n_sub_task in range(len(sub_tasks)):
+	# Reset mission complete booleans 
+	agent.mission.complete = False 
+	agent.mission.failed = False
+	
+	# Update the agent's mission profile
+	agent.mission.index = n_sub_task # update sub-mission index for mission profile 
+	agent.mission.mission = sub_tasks[agent.mission.index]["Solutions"]["Probability"]["Paths"][0]
+	
+	# Print dialogue for user
+	print("-"*100)
+	print(f"Performing sub-task {n_sub_task+1}/{len(sub_tasks)} --> {agent.mission.mission}")
+	print("-"*100)
+
+	# Run the simulation for the agent until completion.
+	while not agent.mission.complete:
+		# If the agent has no path, one needs to be created
+		if agent.paths.selected.path is None: 
+			# Select the path using the simulation class and Select_Path method
+			agent = Simulation.Select_Path(agent, PRISM_PATH)
+		
+		# Perform a discrete time-step 
+		agent = Simulation.Step(agent)
+		
+
+if agent.mission.complete is True: 
+	if agent.mission.failed is True:
+		print("-"*100)
+		print("Agent failed the mission.")
+		print("-"*100)
+	else:
+		print("-"*100)
+		print("Agent completed the mission.")
+		print("-"*100)

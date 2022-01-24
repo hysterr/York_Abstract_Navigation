@@ -23,78 +23,66 @@ class Graph:
         self.heat_map = dict()  # Adjusted heatmap.
         
         # Variables for information.
-        self.position = None
         self.path = None
         self.paths = self.__Path()
-        self.speed = 0.5
+        
+        # Initilise the dynamics of the agent (technically... kinematics)
+        self.dynamics = self.__Dynamics()
         
         # Task Specific Variables 
-        self.task = self.__Task()
-        
+        self.mission = self.__Mission()
+                
     # =============================================================================
-    # Sub-Class for Environment Paths
-    # =============================================================================
-    class __Path: 
-        def __init__(self):
-            self.selected = self.__Instance()       # Selected path for simulated
-            self.probability = self.__Instance()    # Path created using Dijkstra (probability)
-            self.distance = self.__Instance()       # Path created using Dijkstra (distance)
-            self.history = np.empty(shape=(0,2))    # Historic path information for the agent
-            
-        class __Instance:
-            def __init__(self):
-                self.path = None        # Actual path 
-                self.length = None      # Distance of the path
-                self.prob = None        # Probability of completing the path (Dijkstra)
-                self.time = None        # Time expected to complete the path 
-                self.valid = None       # Validation probability from Prism.
-                self.dist_cum = None    # Iterative cummulative distance of the path.
-                self.progress_dist = None # Progress variable for simulation. 
-                self.progress_time = None # Progress variable for time along the path.
-        
-    # =============================================================================
-    # Sub-Class for Environment Tasks 
-    # =============================================================================
-    class __Task: 
-        def __init__(self):
-            self.task = None
-            self.progress = None
-            self.position = 0
-            self.complete = list()
-        
-    # =============================================================================
-    # Create Connections and Add Connections 
+    # Create Connections and Add Connections
+    # -----------------------------------------------------------------------------
+    # The Create_Connection method takes in a list of connections between two nodes 
+    # and adds the connection to the distance and probability arrays.
     # =============================================================================
     def Create_Connections(self, connections):
         # Create connections between the nodes
         for c in connections:
-            self.Add_Connection(c[0], c[1], c[2], c[3])
+            node_1 = c[0]
+            node_2 = c[1]
+            distance = c[2]
+            probability = c[3]
             
-    def Add_Connection(self, start, final, distance, probability=None):
-        self.dist_array[start-1, final-1] = distance
-        self.dist_array[final-1, start-1] = distance
-        
-        # We may have a second input, which requires use of the probability array
-        # If this is the case, populate that array in the same manner as the previous
-        # distance array.
-        if probability is not None:
-            self.prob_array[start-1, final-1] = probability
-            self.prob_array[final-1, start-1] = probability
+            # Update the value in the distance array for the first node and the 
+            # second node. This should also be repeated as the array should be 
+            # mirrored about the diagonal.
+            self.dist_array[node_1-1, node_2-1] = distance
+            self.dist_array[node_2-1, node_1-1] = distance
             
-        
+            # We may have a second input which requires use of the probability array
+            # If this is the case, populate that array in the same manner as the previous
+            # distance array.
+            if probability is not None:
+                self.prob_array[node_1-1, node_2-1] = probability
+                self.prob_array[node_2-1, node_1-1] = probability
+
+             
     # =============================================================================
-    # Create map
-    # - Create the environment map based on the probability and distance matrices
-    # - a previously defined map can be used to create a second instance. 
-    #   - This prevents random generation from impacting an environment.     
+    # Create Map
+    # -----------------------------------------------------------------------------
+    # Create the environment map based on the probability and distance matrices 
+    # which were populated using the Create_Connections method. 
+    #
+    # A map can also be created from a previously defined map. This helps eliminate
+    # stochastic behaviour when creating the map, since many variables are randomly
+    # computed, no two maps will ever be the same.
     # =============================================================================
     def Create_Map(self, env_map=None):
         # The input variable env_map allows this instance to be created based on 
         # a previously created map. However, if this value is None, we should create 
         # the map from scratch. 
         if env_map is None:
-            # check to see if we have actual values in the probability array. This 
-            # will occur if the max value in the array is not zero. 
+            # When creating the connections between each node, the connections are 
+            # defined with two values: distance and probabilty. However, only the 
+            # distance value is required with the probability optional. Therefore, 
+            # we need to check to make sure we have information within the probability 
+            # array in order to use that information to populate the values. Therefore, 
+            # we should check to see if the probabiltiy array has been populated by 
+            # checking its maximum value. If the array has values, the maximum value 
+            # will be greater than zero, which was the default.
             if self.prob_array.max() > 0:
                 # Create the map using information from the distance and probabilty 
                 # matrices.
@@ -102,23 +90,39 @@ class Graph:
                     self.map[i+1] = dict()
                     for j in range(self.dist_array.shape[1]):
                         if self.dist_array[i,j] != 0:
-                            prob_success = self.prob_array[i,j]
-                            prob_fail, prob_return, total = self.__Random_Probabilities(prob_success)
+                            prob_success = self.prob_array[i,j] # Obtain the prob of success
                             
-                            # Depending on the number of probabilities within the class,
-                            # the values should change. For example, if the number is 2,
-                            # then the return probability should be zero and added onto the
-                            # failure probability.
+                            # Generate random probabilities based on the probability of success 
+                            # using the internal method __Random_Probabilities. This returns 
+                            # three variables, a fail, a return state and a total value. The
+                            # total value should always equal 1. 
+                            prob_fail, prob_return, total = self.__Random_Probabilities(prob_success)
+            
+                            
+                            # For some scenarios where we have a probability of success,
+                            # the value which corresponds a failure may not have a return state, 
+                            # meaning if the state fails, there is no second changes. This is 
+                            # determined based on the number of probabilities assigned to the class
+                            # when it is created. For example, if the number  of probs is 2,
+                            # then the return probability should be zero and it's value added onto 
+                            # the failure probability.
                             if self.n_probs == 2:
                                 prob_fail += prob_return
                                 prob_return = 0
                             
+                            # Create a map strucutre based on the nodes i and j and create a 
+                            # dictionary of values corresponding to the probabilities/ 
                             self.map[i+1][j+1] = {"Distance" : self.dist_array[i,j],
                                                   "Success" : prob_success,
                                                   "Return" : prob_return,
                                                   "Fail" : prob_fail,
                                                   "Total" : total}
-    
+            
+            # The probabilty array indicates  it has not been populated and therefore
+            # we should create the map using only the distance array. This is mainly 
+            # used for population of maps where probabilty values are not important 
+            # or do not exist, such as when creating maps for humans which do not have 
+            # probabilities of success defined. 
             else:
                 # Create the map using information from ONLY the distance 
                 for i in range(self.dist_array.shape[0]):
@@ -130,7 +134,8 @@ class Graph:
         # If the env_map variable is NOT None, then we should create this instance 
         # from a previously defined map.                     
         else:
-            # Crate a deep copy of the map.
+            # Crate a deep copy of the map to prevent values being known based on 
+            # memory addresses. 
             self.map = deepcopy(env_map)
             
             # If the map which was created does not have the same number of probabilities
@@ -144,9 +149,62 @@ class Graph:
                         self.map[node][conn]['Return'] = 0
                         
     # =============================================================================
+    # Create Random Probabilities for Environment Map
+    # -----------------------------------------------------------------------------
+    # This is an internal method for creating the environment map based on the dist 
+    # and probability arrays. It uses the probability of success to create a randomly 
+    # generated return and failure state, which when added together with the success 
+    # value MUST equal one. 
+    # =============================================================================
+    def __Random_Probabilities(self, success):
+        total = 0 # Create initial total for checking the value inside the while statement
+        
+        # We cannot exit the function if the total value is NOT 1.
+        while total != 1.00:
+            # Using the success value, determine the maximum value used to create 
+            # the returna and failure states. 
+            remainder = 1 - success
+            
+            # We need to first find the decimal place to allow a better represenation 
+            # of the number of places we must determine the values for. For example, 
+            # if the success if 0.4, then the fail states are comprised of 0.6, with
+            # one decimal place. However, if the success is 0.95, the fail state need 
+            # to be must smaaller and defined quantities within the round function, as
+            # they must be comprised of only 0.05. 
+            dec_place = str(success)[::-1].find('.')
+            
+            # Create one ranndom value using a uniform distribution and apply the 
+            # decimal place derived before for accuracy. 
+            val_1 = np.round(random.uniform(remainder*0.1, remainder), dec_place)
+            
+            # Determine the second value by subtracing the first random value from the 
+            # remainder. 
+            val_2 = np.round(remainder - val_1, 3)
+    
+            # Ideally, we want the return prob to be larger than the fail prob. Therefore
+            # use a simple if statement to catch the larger number and then assign the 
+            # final states values. 
+            if val_1 >= val_2:
+                ret = val_1
+                fail = val_2
+            else:
+                ret = val_2 
+                fail = val_1
+            
+            # Add the probabilities to ensure they add up to one
+            total = success + fail + ret
+            
+        # If we break out of the loop, return the values as outputs from the 
+        # function. We also return the total value as a check for later. 
+        return fail, ret, total
+       
+                        
+    # =============================================================================
     # Update heat map    
-    # - Paths can be input into the class to produce a scalable map of intensity,
-    #   allowing the environment to have an adjusted heat map for probabilities.
+    # -----------------------------------------------------------------------------
+    # If a path is created for one entity, this path can be used to adjust the prob
+    # of success in another entities map by applying a scaling factor to nodes within 
+    # the path.
     # =============================================================================
     def Update_Heat(self, connections, path, scale=0.5):
         # Create a heat map based on the default map.
@@ -165,30 +223,6 @@ class Graph:
                 self.heat_map[c[1]][c[0]]["Fail"] += self.heat_map[c[1]][c[0]]["Success"]                
                 
     
-    # =============================================================================
-    # Create Random Probabilities for Environment Map
-    # =============================================================================
-    def __Random_Probabilities(self, success):
-        total = 0
-        
-        while total != 1.00:
-            remainder = 1 - success
-            dec_place = str(success)[::-1].find('.')
-            val_1  = np.round(random.uniform(remainder*0.1, remainder), dec_place)
-            val_2 = np.round(remainder - val_1, 3)
-    
-            if val_1 >= val_2:
-                ret = val_1
-                fail = val_2
-            else:
-                ret = val_2 
-                fail = val_1
-            
-            # Add the probabilities to ensure they add up to one
-            total = success + fail + ret
-        return fail, ret, total
-           
-
     # =============================================================================
     # Dijkstra's Algorithm for Path Finding
     # =============================================================================
@@ -324,6 +358,14 @@ class Graph:
     
     # =============================================================================
     #  Method for validating a created path using the PRISM class.
+    # -----------------------------------------------------------------------------
+    # When creating a path using Dijkstra's algorithm, the algorithm only considers 
+    # the path which has the highest chance of success, immediately, and does not 
+    # consider the fact that a path has a return state, allowing the agent to try
+    # the edge again. For this reason, PRISM is used to validate the probability of
+    # successfully reaching the end state in a systematic way. For these reasons, 
+    # the probabilty of success obtained through PRISM is usually larger than that 
+    # returned using Dijkstra. 
     # =============================================================================
     def Validate_Path(self, prism_path, path):
         
@@ -340,12 +382,106 @@ class Graph:
         
         
         return validation
+    
+    # =============================================================================
+    # Sub-Class for Environment Paths
+    # -----------------------------------------------------------------------------
+    # This sub-class creates the path class that is applied to the agent for 
+    # navigation throught the environment. It cannot be called externally by the 
+    # class through methods, and is initalised during creation.
+    #
+    # The purpose of this class is to create a set of initialised variables for 
+    # simulation, such as the selected path and the parameters (distance/prob) 
+    # for the selected path.
+    # =============================================================================
+    class __Path: 
+        def __init__(self):
+            self.selected = self.__Instance()       # Selected path for simulated
+            self.max_prob = self.__Instance()       # Path created using Dijkstra (probability)
+            self.min_dist = self.__Instance()       # Path created using Dijkstra (distance)
+            # self.history = np.empty(shape=(0,2))    # Historic path information for the agent
+            self.history = list()
+            
+        class __Instance:
+            def __init__(self):
+                self.path = None            # Actual path 
+                self.position = 0           # Current position (index) along the path
+                self.counter = 0            # Counter for return states
+                self.length = None          # Distance of the path
+                self.prob = None            # Probability of completing the path (Dijkstra)
+                self.time = None            # Time expected to complete the path 
+                self.valid = None           # Validation probability from Prism.
+                self.dist_cum = None        # Iterative cummulative distance of the path.
+        
+    # =============================================================================
+    # Sub-Class for Environment Tasks 
+    # -----------------------------------------------------------------------------
+    # The sub-class Task initialises the task for the agent governed by the main 
+    # Mission class. 
+    #
+    # Each mission is comprised of a series of tasks where each task is represented 
+    # by a location within the environment. Since tasks do not necessary have to be 
+    # conducted in sequantial order, tasks are assigned headers which are characters 
+    # that describe whether the task is an ordered or un-ordered process.
+    # =============================================================================
+    class __Mission: 
+        def __init__(self):
+            self.tasks = None       # List of tasks as node locations
+            self.index = 0          # Index of the sub-mission
+            self.progress = None    # Progress of the task by the agent
+            self.position = 0       # Position of the task? 
+            self.complete = False   # List of completed tasks
+            self.failed = False     # Boolean for whether the mission failed.
+            self.mission = None     # When the mission order has been selected... it goes here! 
+            self.time = 0           # Timer for mission progress
+
+            # Each task is comprised of a series of locations defined by nodes 
+            # within the environment. Each task is assigned a header which defines 
+            # its characteristics for completion. 
+            # Headers: C ("Check"), H ("Hold")
+            self.headers = None
+            
      
+    # =============================================================================
+    # Agent Dynamics
+    # -----------------------------------------------------------------------------
+    # This class sets the dynamics of the agent during simulation
+    # =============================================================================
+    class __Dynamics:
+        def __init__(self):
+            self.velocity = 0.5     # transitional velocity (m/s)
+            self.rotation = 0.5     # angular velocity (rad/s)
+            self.position = None    # Position of the agent (node position)
+            self.yaw      = 0.0     # Yaw angle of the agent (rad)
+            
 # =============================================================================
 # PRISM Interface Class
+# 
+# Models can be checked using PRISM with code developed at runtime to support
+# the PRISM interface.
 # =============================================================================
-class Prism:    
+class Prism:  
+    
+    # =============================================================================
+    # Generate Actions
+    # -----------------------------------------------------------------------------
+    # When creating a PRISM model to check and validate paths, we do not want PRISM 
+    # to perform policy synthesis, but rather be used as a simulation tool which 
+    # follows preset actions. These actions correspond to movement between nodes 
+    # where the movement was predetermined through the path obtained from the path 
+    # finding algorith. Therefore, this path is applied into the method as the 
+    # initial_guess, and is then used to create appropriate actions. 
+    #
+    # If no path is applied to the method, the a random set of actions are created
+    # giving the model completely random movements. This can be used for meta-heuristic 
+    # optimisation. 
+    # =============================================================================
     def Generate_Action(nodes, num_solutions, initial_guess=None):
+        # This creats a random set of actions for the PRISM model which can 
+        # then allow some sort of metaheuristic optimisation to be performed 
+        # to locate the optimal action set. However, if a path is applied as 
+        # the initial_guess variable, then a path is applied from Dijkstra's
+        # and optimisation will not actually be performed. 
         num_actions = [len(nodes[node]) for node in nodes]
         action_array = np.zeros(shape=(num_solutions, len(num_actions)), dtype=np.int32)
     
@@ -355,7 +491,7 @@ class Prism:
                 action = random.randint(1, max_action)
                 action_array[j,i] = action
         
-        # Because we have used Dijkstra's algorithm to create the geodesic path, yet we 
+        # Because we have used Dijkstra's algorithm to create the path, yet we 
         # randomly initialised the action array for the PRISM model, we need to locate 
         # the actions which correspond to movement through the space between each node 
         # identified on the Dijkstra solution.
@@ -367,10 +503,19 @@ class Prism:
         
         return action_array
     
+    # =============================================================================
+    # Create PRISM Model
+    # -----------------------------------------------------------------------------
+    # To create PRISM models at run-time, this method is used. It is created based 
+    # on the entire map of the environment (nodes) as well as the start and final 
+    # location. The action array is only passed into the method as this corresponds
+    # to the preset path which was used to determine appropriate actions to 
+    # successfully navigate to the final state. 
+    # =============================================================================
     def Create_Model(nodes, start_location, final_location, actions):
-        PREAMBLE = list()
-        WORKFLOW = list()
-        REWARD_DISTANCE = list()
+        PREAMBLE = list()           # initial code for the PRISM model
+        WORKFLOW = list()           # main body of the PRISM model
+        REWARD_DISTANCE = list()    # Reward structure for the PRISM model
     
         # Create the preamble
         PREAMBLE.append("// Code generaetion for preamble.\n")
@@ -379,7 +524,7 @@ class Prism:
         # model parameters
         PREAMBLE.append("// Model parameters\n")
         PREAMBLE.append(f"const int start = {start_location};\n")
-        PREAMBLE.append(f"const int final = {final_location}; \n")
+        PREAMBLE.append(f"const int final = {final_location};\n")
         PREAMBLE.append("\n")
     
         # begin action synthesis
@@ -418,7 +563,13 @@ class Prism:
         
         return model 
     
-    
+    # =============================================================================
+    # Export Model 
+    # -----------------------------------------------------------------------------
+    # The PRISM model which was created is exported using this method based on the 
+    # model file, file name and path. Each entry in the model is written line by
+    # line. 
+    # =============================================================================
     def Export_Model(model, file_name=None, path=""):
         if file_name is None:
             n_files = len(glob.glob1(path, "*.prism")) + 1
@@ -427,8 +578,14 @@ class Prism:
         with open(path + file_name, 'w') as f:
             for row in model:
                 f.write(row)
+                
         return path, file_name
 
+    # =============================================================================
+    # Simulate
+    # -----------------------------------------------------------------------------
+    #  
+    # =============================================================================
     def Simulate(prism_path, model, output_files=False):
         if output_files:
             # Output the policy and states files as well
@@ -460,38 +617,6 @@ class Prism:
             
         return result
         
-        
-        
-        
-
-# =============================================================================
-# Create entity function allows the creation of environments using an iterative
-# function based on a connection list.
-# =============================================================================
-# def Create_Entity(connections, n_probs):
-#     n_connections = max(max(connections))
-#     env = Graph(n_connections, n_probs)    
-    
-#     # Create connections between the nodes
-#     for c in connections:
-#         env.add_connection(c[0], c[1], c[2], c[3])
-
-#     return env
-
-# # =============================================================================
-# # After a path has been produced for the human, the connections for the agent 
-# # should be adjusted to produce heated environment, based on the scale function
-# # =============================================================================
-# def Update_Heatmap(connections, path, scale=0.5):
-#     new_connections = deepcopy(connections)
-#     for c in new_connections:
-#         # if a node goes to a connection which is on the path of the human, increase the risk.
-#         if (c[0] in path) or (c[1] in path):
-#             c[3] *= 0.5 # increase the risk by reducing the chance of success
-
-#     return new_connections
-
-
 
 
 

@@ -1,4 +1,4 @@
- #%% Importation
+ #%% Preamble
 from Environment import Graph, Prism
 from Maps import Risk, Bungalow, LivingArea
 from copy import deepcopy
@@ -10,7 +10,7 @@ import numpy as np
 # =============================================================================
 # Create connections for the environment
 risk_matrix = Risk()
-connections = LivingArea(risk_matrix)
+connections = Bungalow(risk_matrix)
 
 # The environment is created as two parts, one for the agent and one for 
 # the human. The human is created with only two probabilities and uses 
@@ -33,36 +33,22 @@ PRISM_PATH = '/Users/jordanhamilton/Documents/PRISM/bin/prism'
 #%% ===========================================================================
 # Mission Definement
 # =============================================================================
-agent.position = 1 # current position of the robot (node)
-human.position = 18 # current position of the human (node)
+agent.position = 22 # current position of the robot (node)
 
-robot_pos_ind  = 0  # current index of the robot along the path.
-robot_task_ind = -1 # current index of the robot progress for the overall mission. (-1 indicates start location.)
-
-human.speed = 0.3 # speed in m/s for human
-agent.speed = 0.1 # speed in m/s for robot
-
-# Task:   1. Check cupboard at 1 (locate item)
-#                1.1 - Request human retrieves item and takes to work surface (4)
-#         2. Check fridge at 9 (locate item)
-#                2.1 - Request human retrieves item and takes to work surface (5)
-#         3. Move to table at 10 (check its clear)
-#         4. Check cupboard at 3 (locate item)
-#                4.1 - Request human retrieves item and takes to work surface (4)
-#         5. Move to table at 10 (Hold...)
-agent.task.task = [1, 9, 10, 3, 10]
+# Set a task for the agent using environment nodes.
+agent.task.task = [17, 11, 26, 2, 4, 15, 19, 22]
 agent.task.position = 0 # Set the index of the agent's task to 0. 
 agent.task.progress = [agent.task.task[agent.task.position]]
+
 
 # Each location along the mission/task will have an intermediate task for the robot to perform
 # such as "check" or "hold". The status of each intermediate task is described using "C" and "H"
 # and these holders will be used to request the human perform some action when the robot reaches 
 # one of the these states.
-# mission_task_holders = ["C", "C", "C", "C", "H"]
-mission_task_holders = ['C', 'C', 'C', 'H', 'C', 'C', 'H', 'C', 'C', 'C', 'C', 'C', 'H']
+mission_task_holders = ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'H']
 
 #%% ===========================================================================
-# Travelling Salesman Solution for the Mission
+# Travelling Salesman Solution for the Mission Planning
 # =============================================================================
 # We have been given a task located in agent.task.task, but this task order does 
 # not necessarily have to be conducted in sequential order. The ordering of the 
@@ -78,13 +64,17 @@ task = deepcopy(agent.task.task)
 task_holders = deepcopy(mission_task_holders)
 
 # Append the start location to the task and add a holder "S" implying "start" 
-# to the task_holders list.
-task.insert(0, start_node)
-task_holders.insert(0, "S")
+# to the task_holders list. Only perform this if the start_node != first node
+if start_node != task[0]:
+    task.insert(0, start_node)
+    task_holders.insert(0, "S")
+else:
+    # ensure the first holder indicates the start
+    task_holders[0] = "S"
 
-# --- TEST TASKS ----
-task = [1, 5, 8, 10, 1, 2, 8, 15, 8, 2, 1, 2, 4, 5]
-task_holders = ['S', 'C', 'C', 'C', 'H', 'C', 'C', 'H', 'C', 'C', 'C', 'C', 'C', 'H']
+# --- TEST TASKS ---- Uncomment for testing
+# task = [1, 5, 8, 10, 1, 2, 8, 15, 8, 2, 1, 2, 4, 5]
+# task_holders = ['S', 'C', 'C', 'C', 'H', 'C', 'C', 'H', 'C', 'C', 'C', 'C', 'C', 'H']
 
 # Previously, the agent and human classes were created based on a set of connections
 # which were imported from Maps. However, we are going to create a new map using 
@@ -107,7 +97,7 @@ for i in range(len(task)):
         # Append the probabilities and distance values obtained from Dijkstra's to the 
         # mission connections.
         mission_connections.append([task[i], task[j], round(agent_prob_dist, 2), round(agent_prob_prob, 6)])
-
+#%%
 # Create a class for the mission so the problem can be solved using the connection 
 # just created. 
 Mission = Graph(n_nodes=num_nodes, n_probs=3)
@@ -213,7 +203,7 @@ for i in range(len(task_breakdown)):
     task_breakdown[i]["Probability"]["Max Value"] = task_breakdown[i]["Solutions"][:,1].max()
     task_breakdown[i]["Probability"]["Max Index"] = [i_1 for i_1, x in enumerate(task_breakdown[i]["Solutions"][:,1]) if x == task_breakdown[i]["Probability"]["Max Value"]]
     task_breakdown[i]["Probability"]["Paths"] = [task_breakdown[i]["Permuted"][i_2] for i_2 in task_breakdown[i]["Probability"]["Max Index"]]
-
+    
 #%% ===========================================================================
 # Simulation
 # =============================================================================
@@ -368,7 +358,7 @@ while not complete:
 
     
     # # Perform next task...
-    # if mission_task_holders[robot_task_ind] == "C":
+    # if mission_task_holders[agent.task.index] == "C":
     #     # The robot is at a check mission point. this means the robot will request the human 
     #     # moves to this specific location in order to retrieve the object the robot has just
     #     # found. it is assumed the human will move along the shortest distance path.
