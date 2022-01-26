@@ -3,6 +3,7 @@ import heapq, random, glob, subprocess
 import numpy as np
 from copy import deepcopy
 import numpy as np
+from random import randint, uniform
 
 # =============================================================================
 # Environment Creation Interface
@@ -58,8 +59,7 @@ class Graph:
             if probability is not None:
                 self.prob_array[node_1-1, node_2-1] = probability
                 self.prob_array[node_2-1, node_1-1] = probability
-
-             
+      
     # =============================================================================
     # Create Map
     # -----------------------------------------------------------------------------
@@ -198,7 +198,35 @@ class Graph:
         # function. We also return the total value as a check for later. 
         return fail, ret, total
        
-                        
+
+    # =============================================================================
+    # Create Random Missions
+    # -----------------------------------------------------------------------------
+    #
+    # =============================================================================
+    def Random_Mission(self, n_nodes, hold_rate=0.8):
+        min_node = min(self.map)
+        max_node = max(self.map)
+    
+        self.dynamics.position = randint(min_node, max_node)
+        self.mission.start = self.dynamics.position
+        self.mission.tasks = [randint(min_node, max_node) for i in range(n_nodes)]
+    
+
+        headers = list()
+        for i in range(n_nodes-1):
+            if uniform(0, 1) <= hold_rate:
+                headers.append("C")
+            else:
+                headers.append("H")
+
+        # Make the last index a hold statement 
+        headers.append("H")
+
+        self.mission.headers = headers
+
+
+
     # =============================================================================
     # Update heat map    
     # -----------------------------------------------------------------------------
@@ -426,6 +454,7 @@ class Graph:
     # =============================================================================
     class __Mission: 
         def __init__(self):
+            self.start = None       # Start location for the agent.
             self.tasks = None       # List of tasks as node locations
             self.index = 0          # Index of the sub-mission
             self.progress = None    # Progress of the task by the agent
@@ -453,6 +482,9 @@ class Graph:
             self.rotation = 0.5     # angular velocity (rad/s)
             self.position = None    # Position of the agent (node position)
             self.yaw      = 0.0     # Yaw angle of the agent (rad)
+
+            # History = [mission sub-task, sub-task, position, curr_pos, next_pos, act_pos, p_succ, p_ret, uniform]
+            self.history  = np.empty(shape=(0, 9))
             
 # =============================================================================
 # PRISM Interface Class
@@ -593,6 +625,9 @@ class Prism:
             states_path = model[0:-6]+".sta"
             expression = [f"{prism_path}", f"{model}", "-pctl", "Pmax=? [F (end & s=final)]", 
                           "-exportadv", f"{policy_path}", "-exportmodel", f"{states_path}"]
+
+            # expression = [f"{prism_path}", f"{model}", "-pctl", "Pmin=? [F (end & s=final)]", 
+            #               "-exportadv", f"{policy_path}", "-exportmodel", f"{states_path}"]
         else:
             # Don't output the policy and states, but run the model
             expression = [f"{prism_path}", f"{model}",  "-pctl", 'Pmax=? [F (end & s=final)]']

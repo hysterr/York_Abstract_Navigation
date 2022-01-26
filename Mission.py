@@ -38,7 +38,7 @@ class Mission:
 		# Create a deepcopy of the agent's mission and task list
 		self.tasks = deepcopy(agent.mission.tasks)
 		self.headers = deepcopy(agent.mission.headers)
-		
+
 		# Append the start location to the task and add a holder "S" implying "start" 
 		# to the task_holders list. Only perform this if the start_node != first node
 		if self.start != self.tasks[0]:
@@ -96,6 +96,10 @@ class Mission:
 	# un-ordered can be perfomred in any order and need to be determine for 
 	# efficiency
 	# 
+	# When a mission breakdown occurs and a mission is partitioned into multiple 
+	# stages, by default each stage ends with the start state of the next scenario. 
+	# However, the optional variable end_state causes this, and if the boolean is 
+	# set to False, each stage will not end of the start state of the next stage.
 	# =============================================================================
 	def Breakdown(self):
 		# with each location assigned a holder value indicating what needs to be done at 
@@ -109,41 +113,51 @@ class Mission:
 		# Itereate through each task in the mission and create sub-tasks based 
 		# on the value of corresponding header for that specific task. 
 		for idx, holder in enumerate(self.headers):
-			# If the value of holder is "S", that indicates the start of the mission
-			if holder == "S":
+			# If this is the first task in the mission, we need to initilise the mission
+			if idx == 0:
 				# Create a new-sub task directory 
 				sub_tasks[n_mission] = dict()
 
-				# Initialise the start location for this sub-task
-				sub_tasks[n_mission]["S"] = self.tasks[idx]
-
-				# Create a list of permutable tasks within this sub-task 
-				sub_tasks[n_mission]["C"] = list()
-
-			# If the value of the holder is "C", then these tasks are permutable 
-			# and should be appended to the current sub-task directory inside the 
-			# permutable task list.
-			elif holder == "C":
-				sub_tasks[n_mission]["C"].append(self.tasks[idx])
-			   
-			# If the holder value is "H". then this indicates a hold function, which 
-			# signals the end of the currnet sub-task as the agent holds for further 
-			# instruction. 
-			elif holder == "H":
-				sub_tasks[n_mission]["E"] = self.tasks[idx]
-			   
-				# if the idx value is equal to the len(task)-1, that indicates that the 
-				# current sub-task end is also the end of the overall mission. Therefore,
-				# if idx is less than the len(task)-1, we should create a new sub-task 
-				# as the mission has not been completed yet. 
-				if idx < len(self.tasks)-1:
-					# Begin the next sub-task by increasing the sub-count and creating a new
-					# sub-directory where the start of this task is this location. 
-					n_mission += 1
-					sub_tasks[n_mission] = dict()
+				# If the value of holder is "S", that indicates the start of the mission
+				if holder == "S":
+					# Initialise the start location for this sub-task
 					sub_tasks[n_mission]["S"] = self.tasks[idx]
+
+					# Create a list of permutable tasks within this sub-task 
 					sub_tasks[n_mission]["C"] = list()
-                    
+
+				# We are at the start but don't have a "S" state, therefore
+				else:
+					sub_tasks[n_mission]["S"] = None
+					sub_tasks[n_mission]["C"] = [self.tasks[idx]]
+
+			else:
+				# If the value of the holder is "C", then these tasks are permutable 
+				# and should be appended to the current sub-task directory inside the 
+				# permutable task list.
+				if holder == "C":
+					sub_tasks[n_mission]["C"].append(self.tasks[idx])
+				   
+				# If the holder value is "H". then this indicates a hold function, which 
+				# signals the end of the currnet sub-task as the agent holds for further 
+				# instruction. 
+				elif holder == "H":
+					# Use the end_state boolean to determine whether the end state of the 
+					# mission stage should end on the start condition of the next stage.
+					sub_tasks[n_mission]["E"] = self.tasks[idx]
+				   
+					# if the idx value is equal to the len(task)-1, that indicates that the 
+					# current sub-task end is also the end of the overall mission. Therefore,
+					# if idx is less than the len(task)-1, we should create a new sub-task 
+					# as the mission has not been completed yet. 
+					if idx < len(self.tasks)-1:
+						# Begin the next sub-task by increasing the sub-count and creating a new
+						# sub-directory where the start of this task is this location. 
+						n_mission += 1
+						sub_tasks[n_mission] = dict()
+						sub_tasks[n_mission]["S"] = self.tasks[idx]
+						sub_tasks[n_mission]["C"] = list()
+	                    
 		return sub_tasks	   
 				   
 	# =============================================================================
@@ -156,7 +170,7 @@ class Mission:
 	# instance of the mission profile which can then be evaluated to obtain the 
 	# solution. 
 	# =============================================================================
-	def Permute(self, sub_tasks):
+	def Permute(self, sub_tasks, apply_end_state=True):
 		# for each sub-task created within the mission.breakdown list, identify all 
 		# permutable tasks that should be located within the "C" list. 
 		for i in range(len(sub_tasks)):
@@ -167,7 +181,10 @@ class Mission:
 			# Iterate through each permutation and append the 
 			for p in permute:
 				p.insert(0, sub_tasks[i]["S"])
-				p.append(sub_tasks[i]["E"])
+
+				# We need to check if we have an end condition.
+				if apply_end_state is True:
+					p.append(sub_tasks[i]["E"])
 				
 			# Add the permuted task order to the breakdown variable
 			sub_tasks[i]["Permuted"] = permute

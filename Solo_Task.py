@@ -30,7 +30,8 @@ agent.dynamics.position = 22 # current position of the robot (node)
 
 # Set a task for the agent using environment nodes.
 # agent.mission.tasks = [17, 11, 26, 2, 4, 15, 19, 22]
-agent.mission.tasks = [19, 17, 15, 11, 2, 4, 26, 22]
+agent.mission.start = agent.dynamics.position
+agent.mission.tasks = [17, 9, 9]
 agent.mission.position = 0 # Set the index of the agent's task to 0. 
 agent.mission.progress = [agent.mission.tasks[agent.mission.position]]
 
@@ -39,7 +40,17 @@ agent.mission.progress = [agent.mission.tasks[agent.mission.position]]
 # such as "check" or "hold". The status of each intermediate task is described using "C" and "H"
 # and these holders will be used to request the human perform some action when the robot reaches 
 # one of the these states.
-agent.mission.headers = ['C', 'C', 'C', 'H', 'C', 'C', 'C', 'H']
+agent.mission.headers = ['C','C','H']
+
+#%% ===========================================================================
+# Create Random Mission
+# =============================================================================
+# headers = list()
+# headers.append("S") # Start sequence node 
+# headers.append("C") # Check sequence node (un-ordered)
+# headers.append("H") # Hold sequence node (ordered)
+
+agent.Random_Mission(n_nodes=20, hold_rate=0.70)
 
 #%% ===========================================================================
 # Create Mission
@@ -50,9 +61,9 @@ mission.environment.Create_Connections(mission.connections)
 mission.environment.Create_Map()
 
 # Create mission breakdown 
-sub_tasks = mission.Breakdown() # Create mission breakdown 
-sub_tasks = mission.Permute(sub_tasks)     # Create all permutations of the mission
-sub_tasks = mission.Solve(sub_tasks)
+sub_tasks = mission.Breakdown() 		# Create mission breakdown 
+sub_tasks = mission.Permute(sub_tasks, apply_end_state=True)	# Create all permutations of the mission
+sub_tasks = mission.Solve(sub_tasks)	# Create solution to the mission
 
 #%% ===========================================================================
 # Simulation
@@ -83,7 +94,14 @@ for n_sub_task in range(len(sub_tasks)):
 		
 		# Perform a discrete time-step 
 		agent = Simulation.Step(agent)
+
+		# Updating history of the agent 
+		# step_data = np.insert(step_data, 0, [n_sub_task+1, agent.mission.position+1, agent.paths.selected.position])
+		# agent.dynamics.history = np.vstack((agent.dynamics.history, step_data))
 		
+	if agent.mission.failed is True:
+		break
+
 
 if agent.mission.complete is True: 
 	if agent.mission.failed is True:
@@ -94,3 +112,8 @@ if agent.mission.complete is True:
 		print("-"*100)
 		print("Agent completed the mission.")
 		print("-"*100)
+
+
+history = agent.dynamics.history
+
+
