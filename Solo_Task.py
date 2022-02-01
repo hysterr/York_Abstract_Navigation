@@ -71,6 +71,7 @@ sub_tasks = mission.Solve(sub_tasks)	# Create solution to the mission
 # Reset the agent for simulation 
 agent = Simulation.Reset(agent)
 
+# Iterate through each stage of the mission
 for n_sub_task in range(len(sub_tasks)):
 	# Reset mission complete booleans 
 	agent.mission.complete = False 
@@ -98,6 +99,7 @@ for n_sub_task in range(len(sub_tasks)):
 		# Updating history of the agent 
 		# step_data = np.insert(step_data, 0, [n_sub_task+1, agent.mission.position+1, agent.paths.selected.position])
 		# agent.dynamics.history = np.vstack((agent.dynamics.history, step_data))
+
 		
 	if agent.mission.failed is True:
 		break
@@ -113,7 +115,6 @@ if agent.mission.complete is True:
 		print("Agent completed the mission.")
 		print("-"*100)
 
-
-history = agent.dynamics.history
+history = agent.dynamics.history # Initiate history variable for ease
 
 
