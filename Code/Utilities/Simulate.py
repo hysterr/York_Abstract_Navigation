@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from Environment import Prism
+from Utilities.Environment import Prism
 from copy import deepcopy
 from random import uniform
 import numpy as np
@@ -145,8 +145,9 @@ class Simulation:
 	# Paths are stored within the agent's path class (agent.paths) and are selected 
 	# based on a PRISM validation analysis. 
 	# =============================================================================
-	def Select_Path(agent, prism_path=None):
+	def Select_Path(agent, prism_path=None, validate=True):
 		# We will use PRISM to validate paths.
+		export_file_name = "Prism/Model_1.prism" # Prism folder for exporting the models
 		if prism_path is None:
 			prism_path = '/Users/jordanhamilton/Documents/PRISM/bin/prism'
 		
@@ -164,35 +165,49 @@ class Simulation:
 		# the Dijkstra method will return the path in "agent.paths.min_dist.path".
 		agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.min_dist, method="Distance")
 		agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.max_prob, method="Probability")		
-		
-		# Since the path has yet to be validated, we should analyse both paths 
-		# using PRISM and select the path which has the best validated probability 
-		# of success. So... create the first action set. 
-		action_1 = Prism.Generate_Action(agent.map, num_solutions=1, initial_guess=agent.paths.min_dist.path)
-		action_2 = Prism.Generate_Action(agent.map, num_solutions=1, initial_guess=agent.paths.max_prob.path)
 
-		# Run PRISM validation on the 1st path 
-		code = Prism.Create_Model(agent.map, curr_position, next_waypoint, action_1[0,:])
-		file_path, model_name = Prism.Export_Model(code, file_name="Model_1.prism")
-		agent.paths.min_dist.valid = Prism.Simulate(prism_path, file_path+model_name, output_files=True)
-		    
-		# Run PRISM validation on the 2nd path
-		code = Prism.Create_Model(agent.map, curr_position, next_waypoint, action_2[0,:])
-		file_path, model_name = Prism.Export_Model(code, file_name="Model_1.prism")
-		agent.paths.max_prob.valid = Prism.Simulate(prism_path, file_path+model_name, output_files=True)
+		# We want to perform a certain action only if the ID of the class indicates 
+		# we are currently working on the agent.
+		if agent.ID == "Agent":
+			# Check to see if the paths should be validated using PRISM (This adds time for simulation).
+			if validate:
+				# Since the path has yet to be validated, we should analyse both paths 
+				# using PRISM and select the path which has the best validated probability 
+				# of success. So... create the first action set. 
+				action_1 = Prism.Generate_Action(agent.map, num_solutions=1, initial_guess=agent.paths.min_dist.path)
+				action_2 = Prism.Generate_Action(agent.map, num_solutions=1, initial_guess=agent.paths.max_prob.path)
 
-		# Select the path based on validation probability as the PCTL relationship for 
-		# PRISM will return the maximum probability value. Therefore...
-		dec_place_round = 5 # Round to prevent infinite rounding errors...
+				# Run PRISM validation on the 1st path 
+				code = Prism.Create_Model(agent.map, curr_position, next_waypoint, action_1[0,:])
+				file_path, model_name = Prism.Export_Model(code, file_name=export_file_name)
+				agent.paths.min_dist.valid = Prism.Simulate(prism_path, file_path+model_name, output_files=True)
+				    
+				# Run PRISM validation on the 2nd path
+				code = Prism.Create_Model(agent.map, curr_position, next_waypoint, action_2[0,:])
+				file_path, model_name = Prism.Export_Model(code, file_name=export_file_name)
+				agent.paths.max_prob.valid = Prism.Simulate(prism_path, file_path+model_name, output_files=True)
 
-		# If the validation for the min_dists is equal or greater than the validation for 
-		# max_prob, then we should use the shortest distance path...
-		if np.round(agent.paths.min_dist.valid, dec_place_round) >= np.round(agent.paths.max_prob.valid, dec_place_round):
-			agent.paths.selected = deepcopy(agent.paths.min_dist)	# Deep copy the min_dist
+				# Select the path based on validation probability as the PCTL relationship for 
+				# PRISM will return the maximum probability value. Therefore...
+				dec_place_round = 5 # Round to prevent infinite rounding errors...
 
-		# If they aren't, we should use the path with the highest probability.
+				# If the validation for the min_dists is equal or greater than the validation for 
+				# max_prob, then we should use the shortest distance path...
+				if np.round(agent.paths.min_dist.valid, dec_place_round) >= np.round(agent.paths.max_prob.valid, dec_place_round):
+					agent.paths.selected = deepcopy(agent.paths.min_dist)	# Deep copy the min_dist
+
+				# If they aren't, we should use the path with the highest probability.
+				else:
+					agent.paths.selected = deepcopy(agent.paths.max_prob)	# Deep copy the max_prob
+
+			# If the validate boolean is False, select the path found to have the highest probability 
+			# of success
+			elif not validate:
+				agent.paths.selected = deepcopy(agent.paths.max_prob)
+
+		# If we are selecing a path for the human, we will just take the least distance path
 		else:
-			agent.paths.selected = deepcopy(agent.paths.max_prob)	# Deep copy the max_prob
+			agent.paths.selected = deepcopy(agent.paths.min_dist)
 
 		# Based on the path distance, compute the estimated completion time based on the agent's speed
 		agent.paths.selected.time = agent.paths.selected.length / agent.dynamics.velocity

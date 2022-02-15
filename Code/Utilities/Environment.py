@@ -14,7 +14,7 @@ from random import randint, uniform
     finding using Dijkstra's algorithm.    
 '''
 class Graph:
-    def __init__(self, n_nodes, n_probs=3):
+    def __init__(self, n_nodes, ID, n_probs=3):
         # Setup nodes and variables
         self.n_nodes = n_nodes  # Number of nodes in the environment
         self.n_probs = n_probs  # Number of probabilities (success, fail, return)
@@ -22,7 +22,8 @@ class Graph:
         self.prob_array = np.zeros(shape=(n_nodes, n_nodes))
         self.map = dict()       # Default environment map
         self.heat_map = dict()  # Adjusted heatmap.
-        
+        self.ID = ID        
+
         # Variables for information.
         self.path = None
         self.paths = self.__Path()
@@ -204,7 +205,7 @@ class Graph:
     # -----------------------------------------------------------------------------
     #
     # =============================================================================
-    def Random_Mission(self, n_nodes, hold_rate=0.8, max_unordered=100):
+    def Random_Mission(self, n_nodes, hold_rate=0.8, num_phases=3, max_unordered=100):
         min_node = min(self.map)
         max_node = max(self.map)
     
