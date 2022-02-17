@@ -123,25 +123,34 @@ class Mission:
 					# Initialise the start location for this sub-task
 					sub_tasks[n_mission]["S"] = self.tasks[idx]
 
-					# Create a list of permutable tasks within this sub-task 
-					sub_tasks[n_mission]["C"] = list()
+					# Create a list of permutable tasks within this sub-task which are 
+					# un-ordered as defined by the "U" character.
+					sub_tasks[n_mission]["U"] = list()
+					sub_tasks[n_mission]["H"] = list()
 
 				# We are at the start but don't have a "S" state, therefore
-				else:
-					sub_tasks[n_mission]["S"] = None
-					sub_tasks[n_mission]["C"] = [self.tasks[idx]]
+				# else:
+					# sub_tasks[n_mission]["S"] = None
+					# sub_tasks[n_mission]["U"] = [self.tasks[idx]]
+					# sub_tasks[n_mission]["H"] = list()
 
 			else:
-				# If the value of the holder is "C", then these tasks are permutable 
+				# If the value of the holder is "U", then these tasks are permutable 
 				# and should be appended to the current sub-task directory inside the 
 				# permutable task list.
-				if holder == "C":
-					sub_tasks[n_mission]["C"].append(self.tasks[idx])
-				   
-				# If the holder value is "H". then this indicates a hold function, which 
-				# signals the end of the currnet sub-task as the agent holds for further 
-				# instruction. 
+				if holder == "U":
+					sub_tasks[n_mission]["U"].append(self.tasks[idx])
+				  
+				# if the value of the holder is "H", then this task is allocated to the 
+				# human and can be performed as an unordered task, but must be completed 
+				# before the phase can end. 
 				elif holder == "H":
+					sub_tasks[n_mission]["H"].append(self.tasks[idx])
+
+				# If the holder value is "O". then this indicates an ordered task, which 
+				# signals the end of the currnet phase and the start location for the next 
+				# phase of the mission. 
+				elif holder == "O":
 					# Use the end_state boolean to determine whether the end state of the 
 					# mission stage should end on the start condition of the next stage.
 					sub_tasks[n_mission]["E"] = self.tasks[idx]
@@ -156,7 +165,8 @@ class Mission:
 						n_mission += 1
 						sub_tasks[n_mission] = dict()
 						sub_tasks[n_mission]["S"] = self.tasks[idx]
-						sub_tasks[n_mission]["C"] = list()
+						sub_tasks[n_mission]["U"] = list()
+						sub_tasks[n_mission]["H"] = list()
 	                    
 		return sub_tasks	   
 				   
@@ -172,10 +182,10 @@ class Mission:
 	# =============================================================================
 	def Permute(self, sub_tasks, apply_end_state=True):
 		# for each sub-task created within the mission.breakdown list, identify all 
-		# permutable tasks that should be located within the "C" list. 
+		# permutable tasks that should be located within the "U" list. 
 		for i in range(len(sub_tasks)):
 			# Create a list of permutations for every permutable task.
-			permute = list(permutations(sub_tasks[i]["C"]))
+			permute = list(permutations(sub_tasks[i]["U"]))
 			permute = [list(p) for p in permute]
 		   
 			# Iterate through each permutation and append the 

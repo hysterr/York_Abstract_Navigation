@@ -7,7 +7,7 @@ from copy import deepcopy
 from itertools import permutations
 import numpy as np
 
-# We will use PRISM to validate paths.
+# We will use PRISM to validate paths. 
 PRISM_PATH = '/Users/jordanhamilton/Documents/PRISM/bin/prism'
 
 #%% ===========================================================================

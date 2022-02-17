@@ -163,13 +163,10 @@ class Graph:
     # =============================================================================
     def __Random_Probabilities(self, success):
         total = 0 # Create initial total for checking the value inside the while statement
-        
+        catch = 0 # Catch to prevent unlimited re-tries due to dec_place inconsistencies.
+
         # We cannot exit the function if the total value is NOT 1.
         while total != 1.00:
-            # Using the success value, determine the maximum value used to create 
-            # the returna and failure states. 
-            remainder = 1 - success
-            
             # We need to first find the decimal place to allow a better represenation 
             # of the number of places we must determine the values for. For example, 
             # if the success if 0.4, then the fail states are comprised of 0.6, with
@@ -177,6 +174,11 @@ class Graph:
             # to be must smaaller and defined quantities within the round function, as
             # they must be comprised of only 0.05. 
             dec_place = str(success)[::-1].find('.')
+            dec_place += 2 # Apply a larger offset for higher resolution.   
+
+            # Using the success value, determine the maximum value used to create 
+            # the returna and failure states. 
+            remainder = np.round(1 - success, dec_place)
             
             # Create one ranndom value using a uniform distribution and apply the 
             # decimal place derived before for accuracy. 
@@ -184,7 +186,7 @@ class Graph:
             
             # Determine the second value by subtracing the first random value from the 
             # remainder. 
-            val_2 = np.round(remainder - val_1, 3)
+            val_2 = np.round(remainder - val_1, dec_place)
     
             # Ideally, we want the return prob to be larger than the fail prob. Therefore
             # use a simple if statement to catch the larger number and then assign the 
@@ -207,40 +209,56 @@ class Graph:
     # =============================================================================
     # Create Random Missions
     # -----------------------------------------------------------------------------
-    #
+    # This method creates random missions for the agent based on the following 
+    # parameters:
+    #   1: n_nodes       - defines the number of tasks within the mission
+    #   2: phase_rate    - defines the probability of a task being ordered, creating 
+    #                       a new phase
+    #   3: max_unordered - defines the number of consecutive unordered tasks in any 
+    #                      phase. This value should ideally not be set higher than 5
+    #                      as this creates unnecessarily large permutations. 
+    #   4: human_rate    - defines the probability that a task will be allocated to
+    #                      the human to perform
+    #   5: max_human     - defines the maximum number of tasks which can be 
+    #                      allocated to the human. This value is set by default to 0
+    #                      to prevent tasks being allocated in the event we do not 
+    #                      have a human.
     # =============================================================================
-    def Random_Mission(self, n_nodes, hold_rate=0.8, num_phases=3, max_unordered=100):
+    def Random_Mission(self, n_nodes, phase_rate=0.8, max_unordered=5, human_rate=None, max_human=0):
         min_node = min(self.map)
         max_node = max(self.map)
     
-        self.dynamics.position = randint(min_node, max_node)
-        self.mission.start = self.dynamics.position
-        self.mission.tasks = [randint(min_node, max_node) for i in range(n_nodes)]
-    
-        headers = list()
-        counter = 0
+        self.dynamics.position = randint(min_node, max_node)    # Creates a random start location for the agent
+        self.mission.start = self.dynamics.position             # Updates the start of the mission 
+        self.mission.tasks = [randint(min_node, max_node) for i in range(n_nodes)]  # randomly compute tasks
+        u_counter = 0
+        h_counter = 0
 
-        # Iterate through the number of nodes to create the headers list. 
-        for i in range(n_nodes-1):
-
+        # Create the headers for the mission 
+        self.mission.headers = list()
+        for i in range(n_nodes-1):  # Iterate until one node from end... final node is O
             # To prevent large unordered tasks from accumulating, use 
             # the max_unordered variable to limit the number of consecutive 
             # unordered tasks.
-            if counter < max_unordered:
-                if uniform(0, 1) <= hold_rate:
-                    headers.append("C")
-                    counter += 1 # Add to the counter
+            if u_counter < max_unordered:
+                if uniform(0, 1) <= phase_rate:
+                    # If the task is set to be un-ordered, it can be applied
+                    # for the human to perform.
+                    if (uniform(0, 1) <= human_rate) and (h_counter < max_human):
+                        self.mission.headers.append("H") # Apply to human
+                        h_counter += 1
+                    else:
+                        self.mission.headers.append("U") # Apply to agent
+                    u_counter += 1 # Add to the counter
                 else:
-                    headers.append("H")
-                    counter = 0 # Reset the counter
+                    self.mission.headers.append("O") # Apply as ordered to agent
+                    u_counter = 0 # Reset the counter
             else:
-                headers.append("H")
-                counter = 0 # Reset the counter
+                self.mission.headers.append("O")
+                u_counter = 0 # Reset the counter
 
         # Make the last index a hold statement 
-        headers.append("H")
-
-        self.mission.headers = headers
+        self.mission.headers.append("O")
 
     # =============================================================================
     # Update heat map    
@@ -492,10 +510,10 @@ class Graph:
             self.start = None       # Start location for the agent.
             self.tasks = None       # List of tasks as node locations
             self.phase = None       # What is the current phase task list?!
-            self.n_phase = None     # Number of phases in a mission
-            self.i_phase = None     # Current phase index in the mission
-            self.i_task  = None     # Current task index in a specific phase
-            self.t_task = None      # Total tasks completed
+            self.n_phase = 0     # Number of phases in a mission
+            self.i_phase = 0     # Current phase index in the mission
+            self.i_task  = 0     # Current task index in a specific phase
+            self.t_task = 0      # Total tasks completed
             self.c_phase = None     # Boolean for whether the current phase is complete
             
 
@@ -528,8 +546,21 @@ class Graph:
             self.position = None    # Position of the agent (node position)
             self.yaw      = 0.0     # Yaw angle of the agent (rad)
 
-            # History = [mission sub-task, sub-task, position, curr_pos, next_pos, act_pos, p_succ, p_ret, uniform]
-            self.history  = np.empty(shape=(0, 9))
+            ''' History = [ mission sub-task, 
+                            Phase,
+                            Task index for phase,
+                            position index on path,
+                            curr_pos, 
+                            next_pos, 
+                            act_pos, 
+                            p_succ, 
+                            p_ret, 
+                            uniform]
+            
+            '''
+            self.history  = np.empty(shape=(0, 10))
+            self.history_columns = ['Task ID', 'Phase', 'Phase Task', 'Path Index', 'Current Position', 'Next Waypoint', 'Actual Next Position', 'P_Succ', 'P_Ret', 'Value']
+
             
 # =============================================================================
 # PRISM Interface Class

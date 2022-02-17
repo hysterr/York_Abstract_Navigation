@@ -37,15 +37,15 @@ class Simulation:
 	# =============================================================================
 	def Step(agent):
 		# Create history array for data logging
-		# history = np.array([
-		# 		agent.mission.index+1, 			# Log the index of the missions sub-task
-		# 		agent.mission.position+1, 		# log the tasks index of the sub-task
-		# 		agent.paths.selected.position 	# log the current position index
-		# 	])	
+		history = np.array([
+				agent.mission.t_task, 			# Log the index of the missions sub-task
+				agent.mission.i_phase,			# Log the index of the phase we are on.
+				agent.mission.i_task,			# Log the index of the task in the current phase
+				agent.paths.selected.i_path 	# log the current position index along the current path
+			])	
 
 		# Current status of the mission based on the position of the agent.
 		curr_position = agent.paths.selected.i_path 			# Current position index for agent along the path
-		# curr_node = agent.dynamics.position 					# Set current position to be the current dynamic location
 		curr_node = agent.paths.selected.path[curr_position]	# Set current position to be the current index position
 		next_node = agent.paths.selected.path[curr_position+1]	# Next task node for agent
 
@@ -122,19 +122,19 @@ class Simulation:
 		# of the current step. 
 		# history = np.empty(shape=(0, agent.dynamics.history.shape[1]))
 		# history = np.array([curr_node, next_node, agent.dynamics.position, p_success, p_success+p_return, unif])
-		# history = np.append(history, 
-		# 	[
-		# 			curr_node,					# Current node location
-		# 			next_node, 					# Next node location in the path
-		# 			agent.dynamics.position, 	# Final position of the agent after the step
-		# 			p_success, 					# Probability of success for this step
-		# 			p_success+p_return, 		# Probability of return for this step
-		# 			unif 						# Uniform value used for step simulation
-		# 	])
+		history = np.append(history, 
+			[
+					curr_node,					# Current node location
+					next_node, 					# Next node location in the path
+					agent.dynamics.position, 	# Final position of the agent after the step
+					p_success, 					# Probability of success for this step
+					p_success+p_return, 		# Probability of return for this step
+					unif 						# Uniform value used for step simulation
+			])
 
 
-		# # Update the history of the agent to the dynamics class 
-		# agent.dynamics.history = np.vstack((agent.dynamics.history, history))					
+		# Update the history of the agent to the dynamics class 
+		agent.dynamics.history = np.vstack((agent.dynamics.history, history))					
 
 		return agent
 
@@ -203,9 +203,20 @@ class Simulation:
 		# path planning for the agent with consideration to the predictive movement 
 		# of the human. 
 		elif human is not None:
-			# First obtain the path of least disance for the human 
-			human_pos = human.dynamics.position
-			human_way = human.mission.mission[human.mission.position+1]
+			
+			# If the human has a task in the current phase, the length of the phase will 
+			# be greater than 0. if this is true, use the phase to path for the human
+			if len(human.mission.phase) > 0:
+				# First obtain the path of least disance for the human 
+				human_pos = human.dynamics.position
+				human_way = human.mission.phase[human.mission.i_task]
+				
+			# If this is not true, the human does not have a task to perform, and we will 
+			# assume for the purposes of planning, the agent stays in the same location
+			else:
+				human_pos = human.dynamics.position
+				human_way = human_pos
+
 			human = human.Dijkstra(human_pos, human_way, human.paths.min_dist, method="Distance")
 			human.paths.selected = deepcopy(human.paths.min_dist)
 
@@ -214,10 +225,10 @@ class Simulation:
 
 			# Third, perform path finding for the agent
 			agent_pos = agent.dynamics.position
-			agent_way = agent.mission.mission[agent.mission.position+1]
+			agent_way = agent.mission.phase[agent.mission.i_task]
 
-			agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.min_dist, method="Distance", map=agent.heat_map)
-			agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.max_prob, method="Probability", map=agent.heat_map)		
+			agent = agent.Dijkstra(agent_pos, agent_way, agent.paths.min_dist, method="Distance",    map=agent.heat_map)
+			agent = agent.Dijkstra(agent_pos, agent_way, agent.paths.max_prob, method="Probability", map=agent.heat_map)		
 
 			# Check to see if the paths should be validated using PRISM (This adds time for simulation).
 			if validate:
@@ -237,10 +248,17 @@ class Simulation:
 
 			# If the curr_position == next_waypoint, the agent will remain in the same location
 			# but we still want to evaluate the path. 
-			if curr_position == next_waypoint:
+			if agent_pos == agent_way:
 				agent.paths.selected.path.append(agent.paths.selected.path[0])
 
-			print(f"The agent begins task {agent.mission.position+1} and will path from node {curr_position} to node: {next_waypoint} using path {agent.paths.selected.path}")
+
+			# Have a differnet prompt for when the human stays in the smae location as opposed to when performing a task
+			if human_pos == human_way: 
+				print(f"The human remains in position {human_pos}")
+			else:
+				print(f"The human begins task {human.mission.t_task+1} and will path from node {human_pos} to node: {human_way} using path {human.paths.selected.path}")
+
+			print(f"The agent begins task {agent.mission.t_task} and will path from node {agent_pos} to node: {agent_way} using path {agent.paths.selected.path}")
 
 			return agent, human
 		
@@ -255,7 +273,7 @@ class Simulation:
 	def __Validate(agent, prism_path):
 		# Positions for validation
 		curr_position = agent.dynamics.position
-		next_waypoint = agent.mission.mission[agent.mission.position+1]
+		next_waypoint = agent.mission.phase[agent.mission.i_task]
 		
 		export_file_name = "Prism/Model_1.prism" # Prism folder for exporting the models
 
