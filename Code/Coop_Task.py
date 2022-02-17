@@ -31,15 +31,15 @@ human.Create_Map(agent.map)
 # =============================================================================
 # Mission Definement
 # =============================================================================
-# agent.Random_Mission(n_nodes=10, hold_rate=0.90, max_unordered=4)	# Agent does not have all tasks ordered
+agent.Random_Mission(n_nodes=10, hold_rate=0.90, max_unordered=4)	# Agent does not have all tasks ordered
 # human.Random_Mission(n_nodes=10, hold_rate=0.00, max_unordered=1)	# Human is set to have all tasks ordered
 
-agent.dynamics.position = 22 # current position of the robot (node)
-agent.mission.start = agent.dynamics.position
-agent.mission.tasks = [17, 9, 13]
-agent.mission.headers = ['H', 'H', 'H']
-agent.mission.position = 0 # Set the index of the agent's task to 0. 
-agent.mission.progress = [agent.mission.tasks[agent.mission.position]]
+# agent.dynamics.position = 22 # current position of the robot (node)
+# agent.mission.start = agent.dynamics.position
+# agent.mission.tasks = [17, 9, 13]
+# agent.mission.headers = ['H', 'H', 'H']
+# agent.mission.position = 0 # Set the index of the agent's task to 0. 
+# agent.mission.progress = [agent.mission.tasks[agent.mission.position]]
 
 human.dynamics.position = 30 # current position of the robot (node)
 human.mission.start = human.dynamics.position
@@ -60,53 +60,46 @@ sub_tasks = mission.Breakdown()
 sub_tasks = mission.Permute(sub_tasks, apply_end_state=True)
 sub_tasks = mission.Solve(sub_tasks)
 
+# Compile the mission plan
+agent.Compile_Mission(sub_tasks)
+
+
 #%% ===========================================================================
 # Simulation
 # =============================================================================
 # Reset the agent for simulation 
 agent = Simulation.Reset(agent)
 
-# Iterate through each stage of the mission
-for n_sub_task in range(len(sub_tasks)):
-	# Reset mission complete booleans 
-	agent.mission.complete = False 
-	agent.mission.failed = False
-	
-	# Update the agent's mission profile
-	agent.mission.index = n_sub_task # update sub-mission index for mission profile 
-	agent.mission.mission = sub_tasks[agent.mission.index]["Solutions"]["Probability"]["Paths"][0]
-	
-	# Print dialogue for user
-	print("-"*100)
-	print(f"Performing Phase {n_sub_task+1}/{len(sub_tasks)} --> {agent.mission.mission}")
-	print("-"*100)
+# Reset mission complete booleans 
+agent.mission.complete = False 
+agent.mission.failed = False
 
-	# Run the simulation for the agent until completion.
-	while not agent.mission.complete:
-		# If the agent has no path, one needs to be created
-		if agent.paths.selected.path is None: 
-			# Select the path using the simulation class and Select_Path method
-			human = Simulation.Select_Path(human, PRISM_PATH, validate=False)
+# Start the simulation inside a while loop
+while agent.mission.complete is False:
 
-			agent.Update_Heat(connections, path=human.paths.selected.paths, scale=0.5)
+	# Identify the current phase of the mission and introduce new phases 
+	# into the current agenda. 
+	if agent.mission.c_phase is True: 
+		agent.mission.phase = agent.mission.breakdown[agent.mission.i_phase-1]['Solutions']['Probability']['Paths'][0]
+		agent.mission.i_task = 1
+		agent.mission.c_phase = False
+		print("-"*100)
+		print(f"Performing Phase {agent.mission.i_phase}/{agent.mission.n_phase} --> {agent.mission.phase}")
+		print("-"*100)
 
-			''' ******************************************************************
-				Need to find a way to pass the heat map as the path for the 
-				selection function and also for the validation as this creates
-				a separate map.
-				******************************************************************'''
+	# if the agent has no path, one needs to be created.
+	if agent.paths.selected.path is None:
+		agent = Simulation.Select_Path(agent, PRISM_PATH, validate=False)
 
-			agent = Simulation.Select_Path(agent, PRISM_PATH, validate=False)
-			
-		
-		# Perform a discrete time-step 
-		agent = Simulation.Step(agent)
+	# Perform a disctete step along the current path.
+	agent = Simulation.Step(agent)
 
-		# Updating history of the agent 
-		# step_data = np.insert(step_data, 0, [n_sub_task+1, agent.mission.position+1, agent.paths.selected.position])
-		# agent.dynamics.history = np.vstack((agent.dynamics.history, step_data))
+	# # If we have reached the end of the current phase...
+	if agent.mission.i_phase > agent.mission.n_phase:
+		agent.mission.complete = True
 
-		
+
+	# If the agent suffered a failure during the step, end the mission.
 	if agent.mission.failed is True:
 		break
 
@@ -121,5 +114,6 @@ if agent.mission.complete is True:
 		print("Agent completed the mission.")
 		print("-"*100)
 
-history = agent.dynamics.history # Initiate history variable for ease
+
+# history = agent.dynamics.history # Initiate history variable for ease
 

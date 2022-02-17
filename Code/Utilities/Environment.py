@@ -22,7 +22,8 @@ class Graph:
         self.prob_array = np.zeros(shape=(n_nodes, n_nodes))
         self.map = dict()       # Default environment map
         self.heat_map = dict()  # Adjusted heatmap.
-        self.ID = ID        
+        self.ID = ID
+        self.connections = None # Map connections        
 
         # Variables for information.
         self.path = None
@@ -60,6 +61,9 @@ class Graph:
             if probability is not None:
                 self.prob_array[node_1-1, node_2-1] = probability
                 self.prob_array[node_2-1, node_1-1] = probability
+
+        # Apply the connections to the class
+        self.connections = connections
       
     # =============================================================================
     # Create Map
@@ -245,13 +249,13 @@ class Graph:
     # of success in another entities map by applying a scaling factor to nodes within 
     # the path.
     # =============================================================================
-    def Update_Heat(self, connections, path, scale=0.5):
+    def Update_Heat(self, path, scale=0.5):
         # Create a heat map based on the default map.
         self.heat_map = deepcopy(self.map)
         
         # Determine which connections should be adjusted based on the path.
         # Iterate through each connection...
-        for c in connections:
+        for c in self.connections:
             # if either the first or second cell in the connection is also in the
             # the path, the success should be adjusted
             if (c[0] in path) or (c[1] in path):
@@ -423,6 +427,26 @@ class Graph:
         return validation
     
     # =============================================================================
+    # Compile Mission
+    # -----------------------------------------------------------------------------
+    # When the task breakdown has been created, the mission can be applied to the 
+    # agent class by compiling inside this methodology. This will create the 
+    # necessary information for the mission inside the agent's class.
+    # =============================================================================
+    def Compile_Mission(self, sub_tasks):
+        # Update the mission breakdown 
+        self.mission.breakdown = deepcopy(sub_tasks)
+
+        # Set the phase information 
+        self.mission.n_phase = len(sub_tasks)   # Determine number of phases 
+        self.mission.i_phase = 1                # Set the current phase index to 1
+        self.mission.c_phase = True             # Set the complete phase bool to False
+
+        self.mission.i_task = 1
+        self.mission.t_task = 1
+
+
+    # =============================================================================
     # Sub-Class for Environment Paths
     # -----------------------------------------------------------------------------
     # This sub-class creates the path class that is applied to the agent for 
@@ -444,8 +468,8 @@ class Graph:
         class __Instance:
             def __init__(self):
                 self.path = None            # Actual path 
-                self.position = 0           # Current position (index) along the path
-                self.counter = 0            # Counter for return states
+                self.i_path = 0             # Current position (index) along the path
+                self.n_return = 0           # Counter for return states
                 self.length = None          # Distance of the path
                 self.prob = None            # Probability of completing the path (Dijkstra)
                 self.time = None            # Time expected to complete the path 
@@ -467,6 +491,16 @@ class Graph:
         def __init__(self):
             self.start = None       # Start location for the agent.
             self.tasks = None       # List of tasks as node locations
+            self.phase = None       # What is the current phase task list?!
+            self.n_phase = None     # Number of phases in a mission
+            self.i_phase = None     # Current phase index in the mission
+            self.i_task  = None     # Current task index in a specific phase
+            self.t_task = None      # Total tasks completed
+            self.c_phase = None     # Boolean for whether the current phase is complete
+            
+
+            self.breakdown = None   # Full mission breakdown
+
             self.index = 0          # Index of the sub-mission
             self.progress = None    # Progress of the task by the agent
             self.position = 0       # Position of the task? 
