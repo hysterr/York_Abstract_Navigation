@@ -73,9 +73,10 @@ class Mission:
 					they are going to be less than those determining systematically using
 					PRISM. So they will need validation.
 				'''
+			
 				# agent_path_dist, agent_dist_dist, agent_dist_prob = agent.Dijkstra(start, final, path_class=None, method="Distance")
 				agent_path_prob, agent_prob_dist, agent_prob_prob = agent.Dijkstra(start, final, path_class=None, method="Probability")
-				
+
 				# Append the probabilities and distance values obtained from Dijkstra's to the 
 				# mission connections.
 				self.connections.append([self.tasks[i], 

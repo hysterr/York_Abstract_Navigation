@@ -1,0 +1,36 @@
+2022-02-18:
+	- Simulation.Select_Path()
+		- Called separately for agent and human 
+		- Allows one entities path to be changed/inspected without impacting the other. 
+
+	- Simulation.Step() 
+		- Changed to Simulation.Step_Agent() for the agent 
+			- Takes map input as conditional to allow heated_map probabilities
+			- Varies the uniform probability value based on summated probilities
+			- Does not interact with the human class, that will be applied in the main script
+		- Currently not inplemented for the human
+
+	- Environment.Update_Heat()
+		- Bug fix for scaling issue which only worked for 0.5 scale factors. 
+		- Adjusted how the method applies heat to connections.
+			- Previously, only one constant was required, now two have been applied
+				- Scale1 variable applied to both connections
+				- Scale2 variable applied to single connection
+		- Risk factor reduces the "Success" rate and is now split across the "Return" and "Fail" states
+			- 2/3 applied to "Return"
+			- 1/3 applied to "Fail"
+
+	- Coop_Task.py 
+		- Simulation procedure has been adjusted to account for the changes described above:
+			1. perform current phase identification
+			2. assign human tasks 
+			3. perform path finding for human 
+			4. update heat for agent path 
+			5. perform path finding for agent
+			6. discrete step for agent (no step for human yet...)
+
+
+
+
+
+		

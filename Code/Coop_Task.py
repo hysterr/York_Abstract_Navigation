@@ -32,23 +32,23 @@ human.Create_Map(agent.map)
 #%% ===========================================================================
 # Mission Definement
 # =============================================================================
-# agent.Random_Mission(n_nodes=5, phase_rate=1.00, max_unordered=4, human_rate=0.30, max_human=1)	# Agent does not have all tasks ordered
+human.dynamics.position = 30 # current position of the robot (node)
+human.mission.start = human.dynamics.position
+
+agent.Random_Mission(n_nodes=10, phase_rate=0.80, max_unordered=4, human_rate=0.30, max_human=1)	# Agent does not have all tasks ordered
 
 agent.dynamics.position = 22 # current position of the robot (node)
 agent.mission.start = agent.dynamics.position
 
 
-agent.mission.tasks = [26, 11, 15, 4, 21]
-agent.mission.headers = ['U', 'U', 'H', 'U', 'O']
+# agent.mission.tasks = [26, 11, 15, 4, 21]
+# agent.mission.headers = ['U', 'U', 'H', 'U', 'O']
 
 # agent.mission.tasks = [26, 11, 4, 21]
 # agent.mission.headers = ['U', 'U', 'U', 'O']
 
 agent.mission.position = 0 # Set the index of the agent's task to 0. 
 agent.mission.progress = [agent.mission.tasks[agent.mission.position]]
-
-human.dynamics.position = 20 # current position of the robot (node)
-human.mission.start = human.dynamics.position
 
 #%% ===========================================================================
 # Mission Breakdown
@@ -78,39 +78,51 @@ agent.mission.failed = False
 # Start the simulation inside a while loop
 while agent.mission.complete is False:
 
-	# Identify the current phase of the mission and introduce new phases 
-	# into the current agenda. 
+	# If the c_phase boolean is True, that indicates we are starting a new phase...
 	if agent.mission.c_phase is True: 
-		# Set the current phase
+		# Set the tasks for the current phase
 		agent.mission.phase = agent.mission.breakdown[agent.mission.i_phase-1]['Solutions']['Probability']['Paths'][0]
 
-		# Update the human task list for this phase
+		# Set the human phase
 		human.mission.phase = agent.mission.breakdown[agent.mission.i_phase-1]["H"]
-
-		agent.mission.i_task = 1 	  # Reset the task index value 
-		agent.mission.c_phase = False # Reset the complete boolean
-		print("-"*100)
-		print(f"Performing Phase {agent.mission.i_phase}/{agent.mission.n_phase} --> {agent.mission.phase}")
-		print("-"*100)
-
-		# We need to identify whether in the current phase, the human has a task.
-		if len(human.mission.phase) > 0:
-			# Check to see if we have predicted a path for the human.
-			if human.paths.selected.path is None:
-				print(f"Requesting the human performs task {human.mission.phase[0]}")
-				agent, human = Simulation.Select_Path(agent, PRISM_PATH, validate=False, human=human)
-
-
-	# If the agent reaches the end of path, the path is set to None, triggering 
-	# a path to be created for the next task/waypoint.
-	if agent.paths.selected.path is None:
-		agent, human = Simulation.Select_Path(agent, PRISM_PATH, validate=False, human=human)
-
-	# Perform a disctete step along the current path.
-	agent = Simulation.Step(agent)
+		
 	
 
-	# # If we have reached the end of the current phase...
+		# Reset the task index and complete boolean
+		agent.mission.i_task = 1 	  
+		agent.mission.c_phase = False 
+
+		# Print statement for phase console information
+		print("-"*100)
+		print(f"Performing Phase {agent.mission.i_phase}/{agent.mission.n_phase} --> Agent Tasks: {agent.mission.phase} --- Human Tasks: {human.mission.phase}")
+		print("-"*100)
+
+		if len(human.mission.phase) > 0:
+			print(f"Requesting the human performs task at node {human.mission.phase[0]}")
+
+
+	# Create a path for the human if one does not exist. 
+	if human.paths.selected.path is None:
+		# Only want to create a path if the human has a task in it's phase...
+		if len(human.mission.phase) > 0:
+			human = Simulation.Select_Path(human, PRISM_PATH, validate=False, heated=False)
+		else:
+			# Set a path that keeps the human in the same location. 
+			human.paths.selected.path = [human.dynamics.position, human.dynamics.position]
+
+	# Check to see if the agent has a path
+	if agent.paths.selected.path is None:
+		# Update the heat map for the agent
+		agent.Update_Heat(human.paths.selected.path)
+
+		# Perform path selection/finding based on the heated map
+		agent = Simulation.Select_Path(agent, PRISM_PATH, validate=False, heated=True)
+
+	# Perform a disctete step along the current path.
+	agent = Simulation.Step_Agent(agent, map=agent.heat_map)
+	
+	# Check to see if the mission has been completed based on the number of phases 
+	# that have been completed.
 	if agent.mission.i_phase > agent.mission.n_phase:
 		agent.mission.complete = True
 
@@ -127,7 +139,9 @@ else:
 	print("Agent completed the mission.")
 	print("-"*100)
 
-history = pd.DataFrame(agent.dynamics.history, columns=agent.dynamics.history_columns)
+history_agent = pd.DataFrame(agent.dynamics.history, columns=agent.dynamics.history_columns)
+history_human = pd.DataFrame(human.dynamics.history, columns=human.dynamics.history_columns)
+
 
 # Options for printing to the console
 pd.set_option('display.max_rows', None)

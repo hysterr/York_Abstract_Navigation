@@ -35,7 +35,7 @@ class Simulation:
 	# -----------------------------------------------------------------------------
 	# Perform a single discrete step	
 	# =============================================================================
-	def Step(agent):
+	def Step_Agent(agent, map):
 		# Create history array for data logging
 		history = np.array([
 				agent.mission.t_task, 			# Log the index of the missions sub-task
@@ -52,9 +52,9 @@ class Simulation:
 		# If the next node is the same location as the current node we do not need to move. 
 		# Therefore, check to see if the values are the same and adjust the success rates.
 		if curr_node != next_node:
-			p_success = agent.map[curr_node][next_node]["Success"] 	# Success probability of the next transition
-			p_return  = agent.map[curr_node][next_node]["Return"]	# Return probability of the next transition	
-			p_fail    = agent.map[curr_node][next_node]["Fail"]		# Fail probability of the next transition
+			p_success = map[curr_node][next_node]["Success"] 	# Success probability of the next transition
+			p_return  = map[curr_node][next_node]["Return"]	# Return probability of the next transition	
+			p_fail    = map[curr_node][next_node]["Fail"]		# Fail probability of the next transition
 
 		else:
 			next_node = curr_node	# Set next node to be current node 
@@ -64,7 +64,8 @@ class Simulation:
 
 		# Perform movement by creating a random floating value between 0 and 1 and comparing 
 		# this value to the success, return and failure probabilities. 
-		unif = uniform(0, 1) 
+		total_p = p_success + p_return + p_fail
+		unif = uniform(0, total_p) 
 		if unif <= p_success:
 			# The agent successfully moves to the next node
 			agent.paths.selected.i_path += 1 		# Update the position counter along the path
@@ -129,6 +130,7 @@ class Simulation:
 					agent.dynamics.position, 	# Final position of the agent after the step
 					p_success, 					# Probability of success for this step
 					p_success+p_return, 		# Probability of return for this step
+					p_success+p_return+p_fail,	# Probability of fail for this step
 					unif 						# Uniform value used for step simulation
 			])
 
@@ -147,121 +149,55 @@ class Simulation:
 	# Paths are stored within the agent's path class (agent.paths) and are selected 
 	# based on a PRISM validation analysis. 
 	# =============================================================================
-	def Select_Path(agent, prism_path=None, validate=True, human=None):
-		# We will use PRISM to validate paths.
-		if prism_path is None:
-			prism_path = '/Users/jordanhamilton/Documents/PRISM/bin/prism'
-
-		# If the argument 'human' is None, this indicates a solo path finding venture
-		if human is None:
-			# We need to first create a path for the agent between the current location 
-			# and the next waypoint.
+	def Select_Path(agent, prism_path=None, validate=True, heated=False):
+		# We have two classes of agents ("agent" and "human") which require different 
+		# processes.
+		if agent.ID == "Human":
 			curr_position = agent.dynamics.position
 			next_waypoint = agent.mission.phase[agent.mission.i_task]
-
-			# Create two paths for the agent using Dijkstra's algorithm to the 
-			# next_waypoint. The Dijkstra method will output the same class but 
-			# with the path located into the path_class applied as an input to the 
-		    # method. For example, if the path_class applied is "agent.paths.distance", 
-			# the Dijkstra method will return the path in "agent.paths.min_dist.path".
-			agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.min_dist, method="Distance")
-			agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.max_prob, method="Probability")		
-
-			# We want to perform a certain action only if the ID of the class indicates 
-			# we are currently working on the agent.
-			if agent.ID == "Agent":
-				# Check to see if the paths should be validated using PRISM (This adds time for simulation).
-				if validate:
-					agent = Simulation.__Validate(agent, prism_path)
-
-				# If the validate boolean is False, select the path found to have the highest probability 
-				# of success
-				elif not validate:
-					agent.paths.selected = deepcopy(agent.paths.max_prob)
-
-			# If we are selecing a path for the human, we will just take the least distance path
-			elif agent.ID == "Human":
-				agent.paths.selected = deepcopy(agent.paths.min_dist)
-
-			# Based on the path distance, compute the estimated completion time based on the agent's speed
-			agent.paths.selected.time = agent.paths.selected.length / agent.dynamics.velocity
-
-			# Create a distance vector where each entry in the vector is a cumulative distance 
-			# value from the previous node. 
-			agent = Simulation.Path_Cummulative_Distance(agent)
-
-			# If the curr_position == next_waypoint, the agent will remain in the same location
-			# but we still want to evaluate the path. 
-			if curr_position == next_waypoint:
-				agent.paths.selected.path.append(agent.paths.selected.path[0])
-
-			print(f"The agent begins task {agent.mission.t_task} and will path from node {curr_position} to node: {next_waypoint} using path {agent.paths.selected.path}")
-
-			return agent
-
-		# If a human class has been passed into the method, we will need to perform 
-		# path planning for the agent with consideration to the predictive movement 
-		# of the human. 
-		elif human is not None:
 			
-			# If the human has a task in the current phase, the length of the phase will 
-			# be greater than 0. if this is true, use the phase to path for the human
-			if len(human.mission.phase) > 0:
-				# First obtain the path of least disance for the human 
-				human_pos = human.dynamics.position
-				human_way = human.mission.phase[human.mission.i_task]
-				
-			# If this is not true, the human does not have a task to perform, and we will 
-			# assume for the purposes of planning, the agent stays in the same location
-			else:
-				human_pos = human.dynamics.position
-				human_way = human_pos
+			# Find the path of least distance
+			agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.min_dist, method="Distance")
+			agent.paths.selected = deepcopy(agent.paths.min_dist)
 
-			human = human.Dijkstra(human_pos, human_way, human.paths.min_dist, method="Distance")
-			human.paths.selected = deepcopy(human.paths.min_dist)
 
-			# Second, update the agent's environment view to factor the human's path
-			agent.Update_Heat(path=human.paths.selected.path, scale=0.5)
+		if agent.ID == "Agent":
+			curr_position = agent.dynamics.position
+			next_waypoint = agent.mission.phase[agent.mission.i_task]
+			# For the agent we find two solutions: least distance and highest prob of success
+			if heated is False:
+				# Use the heated map for path finding
+				agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.min_dist, method="Distance")
+				agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.max_prob, method="Probability")	
 
-			# Third, perform path finding for the agent
-			agent_pos = agent.dynamics.position
-			agent_way = agent.mission.phase[agent.mission.i_task]
+			elif heated is True:
+				# Use the heated map for path finding
+				agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.min_dist, method="Distance",    map=agent.heat_map)
+				agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.max_prob, method="Probability", map=agent.heat_map)	
 
-			agent = agent.Dijkstra(agent_pos, agent_way, agent.paths.min_dist, method="Distance",    map=agent.heat_map)
-			agent = agent.Dijkstra(agent_pos, agent_way, agent.paths.max_prob, method="Probability", map=agent.heat_map)		
-
-			# Check to see if the paths should be validated using PRISM (This adds time for simulation).
-			if validate:
+			if validate and prism_path is not None: 
+				# select the path through validation
 				agent = Simulation.__Validate(agent, prism_path)
 
-			# If the validate boolean is False, select the path found to have the highest probability 
-			# of success
-			elif not validate:
+			else:
+				# select the highest probability path
 				agent.paths.selected = deepcopy(agent.paths.max_prob)
 
-			# Based on the path distance, compute the estimated completion time based on the agent's speed
-			agent.paths.selected.time = agent.paths.selected.length / agent.dynamics.velocity
+		# Based on the path distance, compute the estimated completion time based on the agent's speed
+		agent.paths.selected.time = agent.paths.selected.length / agent.dynamics.velocity
 
-			# Create a distance vector where each entry in the vector is a cumulative distance 
-			# value from the previous node. 
-			agent = Simulation.Path_Cummulative_Distance(agent)
+		# Create a distance vector where each entry in the vector is a cumulative distance 
+		# value from the previous node. 
+		agent = Simulation.Path_Cummulative_Distance(agent)
 
-			# If the curr_position == next_waypoint, the agent will remain in the same location
-			# but we still want to evaluate the path. 
-			if agent_pos == agent_way:
-				agent.paths.selected.path.append(agent.paths.selected.path[0])
+		# If the curr_position == next_waypoint, the agent will remain in the same location
+		# but we still want to evaluate the path. 
+		if curr_position == next_waypoint:
+			agent.paths.selected.path.append(agent.paths.selected.path[0])
 
+		print(f"The {agent.ID} begins task {agent.mission.t_task+1} and will path from node {curr_position} to node: {next_waypoint} using path {agent.paths.selected.path}")
 
-			# Have a differnet prompt for when the human stays in the smae location as opposed to when performing a task
-			if human_pos == human_way: 
-				print(f"The human remains in position {human_pos}")
-			else:
-				print(f"The human begins task {human.mission.t_task+1} and will path from node {human_pos} to node: {human_way} using path {human.paths.selected.path}")
-
-			print(f"The agent begins task {agent.mission.t_task} and will path from node {agent_pos} to node: {agent_way} using path {agent.paths.selected.path}")
-
-			return agent, human
-		
+		return agent
 
 	# =============================================================================
 	# Validate the Path

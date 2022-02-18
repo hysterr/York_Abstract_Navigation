@@ -267,23 +267,40 @@ class Graph:
     # of success in another entities map by applying a scaling factor to nodes within 
     # the path.
     # =============================================================================
-    def Update_Heat(self, path, scale=0.5):
+    def Update_Heat(self, path, scale1=0.5, scale2=0.90):
         # Create a heat map based on the default map.
         self.heat_map = deepcopy(self.map)
-        
+        inv_scale1 = 1 - scale1
+        inv_scale2 = 1 - scale2
+
         # Determine which connections should be adjusted based on the path.
         # Iterate through each connection...
         for c in self.connections:
-            # if either the first or second cell in the connection is also in the
-            # the path, the success should be adjusted
-            if (c[0] in path) or (c[1] in path):
-                self.heat_map[c[0]][c[1]]["Success"] *= scale
-                self.heat_map[c[0]][c[1]]["Fail"] += self.heat_map[c[0]][c[1]]["Success"]
+            # If both connections are in the path, apply the harsher scale function
+            if (c[0] in path) and (c[1] in path):
+                success_scale =  np.round(self.heat_map[c[0]][c[1]]["Success"] * scale1, 5)  # Scale the success probability
+                remainder = np.round(self.heat_map[c[0]][c[1]]["Success"] * inv_scale1, 5)    # Calculate the remainder
+                partition = np.round(remainder / 3, 5) # Scale the remainder to apply as return and fail offsets
 
-                self.heat_map[c[1]][c[0]]["Success"] *= scale
-                self.heat_map[c[1]][c[0]]["Fail"] += self.heat_map[c[1]][c[0]]["Success"]                
+                self.heat_map[c[0]][c[1]]["Success"] = success_scale # Update the success prob for first edge
+                self.heat_map[c[1]][c[0]]["Success"] = success_scale # Update the success prob for secnd edge
+                self.heat_map[c[0]][c[1]]["Return"] += partition*2   # Update the return state
+                self.heat_map[c[1]][c[0]]["Return"] += partition*2   # Update the return state
+                self.heat_map[c[0]][c[1]]["Fail"] += partition       # Update the fail state
+                self.heat_map[c[1]][c[0]]["Fail"] += partition       # Update the fail state
                 
-    
+            elif (c[0] in path) or (c[1] in path):
+                success_scale =  np.round(self.heat_map[c[0]][c[1]]["Success"] * scale2, 5)  # Scale the success probability
+                remainder = np.round(self.heat_map[c[0]][c[1]]["Success"] * inv_scale2, 5)    # Calculate the remainder
+                partition = np.round(remainder / 3, 5) # Scale the remainder to apply as return and fail offsets
+
+                self.heat_map[c[0]][c[1]]["Success"] = success_scale # Update the success prob for first edge
+                self.heat_map[c[1]][c[0]]["Success"] = success_scale # Update the success prob for secnd edge
+                self.heat_map[c[0]][c[1]]["Return"] += partition*2   # Update the return state
+                self.heat_map[c[1]][c[0]]["Return"] += partition*2   # Update the return state
+                self.heat_map[c[0]][c[1]]["Fail"] += partition       # Update the fail state
+                self.heat_map[c[1]][c[0]]["Fail"] += partition       # Update the fail state
+
     # =============================================================================
     # Dijkstra's Algorithm for Path Finding
     # =============================================================================
@@ -461,7 +478,7 @@ class Graph:
         self.mission.c_phase = True             # Set the complete phase bool to False
 
         self.mission.i_task = 1
-        self.mission.t_task = 1
+        self.mission.t_task = 0
 
 
     # =============================================================================
@@ -555,11 +572,12 @@ class Graph:
                             act_pos, 
                             p_succ, 
                             p_ret, 
+                            p_fail,
                             uniform]
             
             '''
-            self.history  = np.empty(shape=(0, 10))
-            self.history_columns = ['Task ID', 'Phase', 'Phase Task', 'Path Index', 'Current Position', 'Next Waypoint', 'Actual Next Position', 'P_Succ', 'P_Ret', 'Value']
+            self.history  = np.empty(shape=(0, 11))
+            self.history_columns = ['Task ID', 'Phase', 'Phase Task', 'Path Index', 'Current Position', 'Next Waypoint', 'Actual Next Position', 'P_Succ', 'P_Ret', 'P_fail', 'Value']
 
             
 # =============================================================================
