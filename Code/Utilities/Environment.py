@@ -510,7 +510,8 @@ class Graph:
                 self.time = None            # Time expected to complete the path 
                 self.valid = None           # Validation probability from Prism.
                 self.dist_cum = None        # Iterative cummulative distance of the path.
-        
+                self.off_path = False       # Boolean for determining if the entity has moved off path
+
     # =============================================================================
     # Sub-Class for Environment Tasks 
     # -----------------------------------------------------------------------------
@@ -532,7 +533,7 @@ class Graph:
             self.i_task  = 0     # Current task index in a specific phase
             self.t_task = 0      # Total tasks completed
             self.c_phase = None     # Boolean for whether the current phase is complete
-            
+            self.events = 0      # Number of events
 
             self.breakdown = None   # Full mission breakdown
 

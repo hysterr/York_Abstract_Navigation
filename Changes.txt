@@ -1,33 +1,61 @@
+------------------------------------------------------------------------------------------------
+To do:
+------------------------------------------------------------------------------------------------
+- Creating a more robust Environment.Heat_Map() method when the human isn't moving
+- Add wait statements for the robot 
+- Prevent the agent from moving if the human is located at the same node 
+- Prevent the agent from moving if the human is located on a connecting node
+
+------------------------------------------------------------------------------------------------
+2022-02-21:
+------------------------------------------------------------------------------------------------
+- Simulation.Step_Human()
+	- Implemented the first version of the function 
+	- Random movements are also possible for the human based on the optional creativity argument
+		- Human can ignore paths and creatively move to other connected nodes
+		- When this happens, an "off-path" flag is raised (human.mission.off_path) to instruct the agent the human moved off-path. 
+	- Path movement
+		- if the human has an active phase task and a proposed path to that task location, the human moves along the path, cooperatively
+	- If the human does not have a mission task to perform, the human stays in the same location unless the creative movement value is triggered. 
+
+- Coop_Task.py
+	- Human discrete steps applied (see Simulation.Step_Human() changes above)
+	- If the human has a task to perform in a phase, the agent will wait for the human to complete their task before starting the next phase. 
+	- Whilst the agent is waiting, no new paths are created for the agent.
+	- When the human moves along the path, the previous node is removed from the path, allowing the agent.Update_Heat() method to discount previous locations from the heat map.
+
+------------------------------------------------------------------------------------------------
 2022-02-18:
-	- Simulation.Select_Path()
-		- Called separately for agent and human 
-		- Allows one entities path to be changed/inspected without impacting the other. 
+------------------------------------------------------------------------------------------------
+- Simulation.Select_Path()
+	- Called separately for agent and human 
+	- Allows one entities path to be changed/inspected without impacting the other. 
 
-	- Simulation.Step() 
-		- Changed to Simulation.Step_Agent() for the agent 
-			- Takes map input as conditional to allow heated_map probabilities
-			- Varies the uniform probability value based on summated probilities
-			- Does not interact with the human class, that will be applied in the main script
-		- Currently not inplemented for the human
+- Simulation.Step() 
+	- Changed to Simulation.Step_Agent() for the agent 
+		- Takes map input as conditional to allow heated_map probabilities
+		- Varies the uniform probability value based on summated probilities
+		- Does not interact with the human class, that will be applied in the main script
+	- Currently not inplemented for the human
 
-	- Environment.Update_Heat()
-		- Bug fix for scaling issue which only worked for 0.5 scale factors. 
-		- Adjusted how the method applies heat to connections.
-			- Previously, only one constant was required, now two have been applied
-				- Scale1 variable applied to both connections
-				- Scale2 variable applied to single connection
-		- Risk factor reduces the "Success" rate and is now split across the "Return" and "Fail" states
-			- 2/3 applied to "Return"
-			- 1/3 applied to "Fail"
+- Environment.Update_Heat()
+	- Bug fix for scaling issue which only worked for 0.5 scale factors. 
+	- Adjusted how the method applies heat to connections.
+		- Previously, only one constant was required, now two have been applied
+			- Scale1 variable applied to both connections
+			- Scale2 variable applied to single connection
+	- Risk factor reduces the "Success" rate and is now split across the "Return" and "Fail" states
+		- 2/3 applied to "Return"
+		- 1/3 applied to "Fail"
 
-	- Coop_Task.py 
-		- Simulation procedure has been adjusted to account for the changes described above:
-			1. perform current phase identification
-			2. assign human tasks 
-			3. perform path finding for human 
-			4. update heat for agent path 
-			5. perform path finding for agent
-			6. discrete step for agent (no step for human yet...)
+- Coop_Task.py 
+	- Simulation procedure has been adjusted to account for the changes described above:
+		1. perform current phase identification
+		2. assign human tasks 
+		3. perform path finding for human 
+		4. update heat for agent path 
+		5. perform path finding for agent
+		6. discrete step for agent (no step for human yet...)
 
 
 
