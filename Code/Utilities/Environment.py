@@ -62,9 +62,15 @@ class Graph:
                 self.prob_array[node_1-1, node_2-1] = probability
                 self.prob_array[node_2-1, node_1-1] = probability
 
-        # Apply the connections to the class
-        self.connections = connections
-      
+        # Since the default connections only exist as one edge per node connection, create 
+        # the reversal to complete every single edge within the map.
+        self.connections =  [x for x in connections]
+        for i in range(len(self.connections)):
+            # Take the edge and reverse the first two entries. 
+            edge = [x for x in self.connections[i]]
+            edge[0], edge[1] = edge[1], edge[0]
+            self.connections.append(edge)
+
     # =============================================================================
     # Create Map
     # -----------------------------------------------------------------------------
@@ -266,8 +272,12 @@ class Graph:
     # If a path is created for one entity, this path can be used to adjust the prob
     # of success in another entities map by applying a scaling factor to nodes within 
     # the path.
+    #   1. human_path: predicted path for the human 
+    #   2. human_position: current position of the human 
+    #   3. scale1: scaling function applied when the edge has a dual conflict
+    #   4. scale2: scaling function applied when the edge has a single conflict
     # =============================================================================
-    def Update_Heat(self, path, scale1=0.5, scale2=0.90):
+    def Update_Heat(self, human_path, human_position, scale1=0.5, scale2=0.90):
         # Create a heat map based on the default map.
         self.heat_map = deepcopy(self.map)
         inv_scale1 = 1 - scale1
@@ -277,9 +287,9 @@ class Graph:
         # Iterate through each connection...
         for c in self.connections:
             # If both connections are in the path, apply the harsher scale function
-            if (c[0] in path) and (c[1] in path):
+            if (c[0] in human_path) and (c[1] in human_path):
                 success_scale =  np.round(self.heat_map[c[0]][c[1]]["Success"] * scale1, 5)  # Scale the success probability
-                remainder = np.round(self.heat_map[c[0]][c[1]]["Success"] * inv_scale1, 5)    # Calculate the remainder
+                remainder = np.round(self.heat_map[c[0]][c[1]]["Success"] * inv_scale1, 5)   # Calculate the remainder
                 partition = np.round(remainder / 3, 5) # Scale the remainder to apply as return and fail offsets
 
                 self.heat_map[c[0]][c[1]]["Success"] = success_scale # Update the success prob for first edge
@@ -289,7 +299,7 @@ class Graph:
                 self.heat_map[c[0]][c[1]]["Fail"] += partition       # Update the fail state
                 self.heat_map[c[1]][c[0]]["Fail"] += partition       # Update the fail state
                 
-            elif (c[0] in path) or (c[1] in path):
+            elif (c[0] in human_path) or (c[1] in human_path):
                 success_scale =  np.round(self.heat_map[c[0]][c[1]]["Success"] * scale2, 5)  # Scale the success probability
                 remainder = np.round(self.heat_map[c[0]][c[1]]["Success"] * inv_scale2, 5)    # Calculate the remainder
                 partition = np.round(remainder / 3, 5) # Scale the remainder to apply as return and fail offsets
@@ -300,6 +310,16 @@ class Graph:
                 self.heat_map[c[1]][c[0]]["Return"] += partition*2   # Update the return state
                 self.heat_map[c[0]][c[1]]["Fail"] += partition       # Update the fail state
                 self.heat_map[c[1]][c[0]]["Fail"] += partition       # Update the fail state
+            
+            # We can't move AT ALL to the space the human is occupying... or we also want to avoid 
+            # a node which is predicted to be the human's next pathing location...
+            if c[1] == human_position or c[1] == human_path[1]:
+                self.heat_map[c[0]][c[1]]["Success"] = 0 # Set the success to 0
+                self.heat_map[c[0]][c[1]]["Return"] = 1  # Set the return to 1
+                self.heat_map[c[0]][c[1]]["Fail"] = 0    # Set the fail state to 0
+
+            
+ 
 
     # =============================================================================
     # Dijkstra's Algorithm for Path Finding
@@ -532,7 +552,7 @@ class Graph:
             self.i_phase = 0     # Current phase index in the mission
             self.i_task  = 0     # Current task index in a specific phase
             self.t_task = 0      # Total tasks completed
-            self.c_phase = None     # Boolean for whether the current phase is complete
+            self.c_phase = None  # Boolean for whether the current phase is complete
             self.events = 0      # Number of events
 
             self.breakdown = None   # Full mission breakdown

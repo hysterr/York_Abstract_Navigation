@@ -7,8 +7,7 @@ import numpy as np
 # =============================================================================
 # Simulation Class
 # =============================================================================
-class Simulation: 
-	
+class Simulation:	
 	# =============================================================================
 	# Reset the Agent 
 	# -----------------------------------------------------------------------------
@@ -60,6 +59,8 @@ class Simulation:
 			init_position = human.dynamics.position
 			human.dynamics.position = connecting_nodes[randint(0, len(connecting_nodes)-1)]
 			print(f"\t[{human.mission.events+1}] The human moved 'off-path' from node {init_position} to {human.dynamics.position}")
+			curr_position = init_position
+			next_position = 0
 
 		# The human does not move randomly during this step, and instead moves 
 		# along a path (if one exists) or stays at the same location (if one does
@@ -77,10 +78,21 @@ class Simulation:
 					# Remove the fisrt element from the human's list.
 					human.paths.selected.path.pop(0)
 
-					# Update the position
-					# human.paths.selected.i_path += 1
+					# Update the position of the human 
 					human.dynamics.position = human.paths.selected.path[human.paths.selected.i_path]
-					print(f"\t[{human.mission.events+1}] The human moved from node {curr_position} to {next_position} (on path)")
+
+					# If the human has an active phase task... check to see if the human reached the target location
+					# during this step.	
+					if human.dynamics.position == human.mission.phase[human.mission.i_phase]:
+						human.mission.phase = []
+						human.mission.c_phase = True
+						print(f"\t[{human.mission.events+1}] The human moved from node {curr_position} and reached the target location {human.dynamics.position}")
+
+					# The human progressed the path. 
+					else:
+						print(f"\t[{human.mission.events+1}] The human moved from node {curr_position} to {next_position} (on path)")
+
+
 
 			# The human does not move during this step. 
 			else:
@@ -141,34 +153,42 @@ class Simulation:
 
 			# Perform movement by creating a random floating value between 0 and 1 and comparing 
 			# this value to the success, return and failure probabilities. 
-			total_p = p_success + p_return + p_fail
-			unif = uniform(0, total_p) 
-			if unif <= p_success:
-				# The agent successfully moves to the next node
-				agent.paths.selected.i_path += 1 		# Update the position counter along the path
-				agent.dynamics.position = next_node		# Update the agent's dynamic position 
-				agent.paths.selected.n_return = 0		# Reset the return counter
 
-				# Print update to console
-				print(f"\t[{agent.mission.events+1}] The agent moved from node {curr_node} to {next_node} (Success)")
-			
-			elif unif <= (p_success + p_return): 
-				# The agent fails to move to the next node and returns to the original node
+			if p_success == 0: 
+				# The agent holds its position...
 				agent.paths.selected.n_return += 1
-
-				# if the counter indicates a return on five consecutive attempts end mission. 
-				if agent.paths.selected.n_return == 5:
-					# agent.mission.complete = True
-					agent.mission.failed = True
-
-				# Print update to console.
-				print(f"\t[{agent.mission.events+1}] The agent returned to node {curr_node} -- counter {agent.paths.selected.n_return} (Return)")
+				print(f"\t[{agent.mission.events+1}] The agent does not move due to human uncertainty... (HOLD)")
 
 			else:
-				# The agent suffers a failure and the mission should end.
-				print(f"\t[{agent.mission.events+1}] The agent suffered a catatrophic failure when moving from node {curr_node} to {next_node}	(Fail) ")
-				# agent.mission.complete = True
-				agent.mission.failed = True
+				# The agent can move to its intended location... the human is not blocking the way
+				total_p = p_success + p_return + p_fail
+				unif = uniform(0, total_p) 
+				if unif <= p_success:
+					# The agent successfully moves to the next node
+					agent.paths.selected.i_path += 1 		# Update the position counter along the path
+					agent.dynamics.position = next_node		# Update the agent's dynamic position 
+					agent.paths.selected.n_return = 0		# Reset the return counter
+
+					# Print update to console
+					print(f"\t[{agent.mission.events+1}] The agent moved from node {curr_node} to {next_node} (Success)")
+				
+				elif unif <= (p_success + p_return): 
+					# The agent fails to move to the next node and returns to the original node
+					agent.paths.selected.n_return += 1
+
+					# if the counter indicates a return on five consecutive attempts end mission. 
+					if agent.paths.selected.n_return == 5:
+						# agent.mission.complete = True
+						agent.mission.failed = True
+
+					# Print update to console.
+					print(f"\t[{agent.mission.events+1}] The agent returned to node {curr_node} -- counter {agent.paths.selected.n_return} (Return)")
+
+				else:
+					# The agent suffers a failure and the mission should end.
+					print(f"\t[{agent.mission.events+1}] The agent suffered a catatrophic failure when moving from node {curr_node} to {next_node}	(Fail) ")
+					# agent.mission.complete = True
+					agent.mission.failed = True
 
 			# Check to see and see if the agent has reached the end of the current path.
 			# If the agent has reached the end of the current path, the agent needs a new 
@@ -236,56 +256,56 @@ class Simulation:
 	# Paths are stored within the agent's path class (agent.paths) and are selected 
 	# based on a PRISM validation analysis. 
 	# =============================================================================
-	def Select_Path(agent, prism_path=None, validate=True, heated=False):
+	def Select_Path(entity, prism_path=None, validate=True, heated=False):
 		# We have two classes of agents ("agent" and "human") which require different 
 		# processes.
-		if agent.ID == "Human":
-			curr_position = agent.dynamics.position
-			next_waypoint = agent.mission.phase[agent.mission.i_task]
+		if entity.ID == "Human":
+			curr_position = entity.dynamics.position
+			next_waypoint = entity.mission.phase[entity.mission.i_task]
 			
 			# Find the path of least distance
-			agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.min_dist, method="Distance")
-			agent.paths.selected = deepcopy(agent.paths.min_dist)
+			entity = entity.Dijkstra(curr_position, next_waypoint, entity.paths.min_dist, method="Distance")
+			entity.paths.selected = deepcopy(entity.paths.min_dist)
 
-		if agent.ID == "Agent":
-			curr_position = agent.dynamics.position
-			next_waypoint = agent.mission.phase[agent.mission.i_task]
+		if entity.ID == "Agent":
+			curr_position = entity.dynamics.position
+			next_waypoint = entity.mission.phase[entity.mission.i_task]
 			# For the agent we find two solutions: least distance and highest prob of success
 			if heated is False:
 				# Use the heated map for path finding
-				agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.min_dist, method="Distance")
-				agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.max_prob, method="Probability")	
+				entity = entity.Dijkstra(curr_position, next_waypoint, entity.paths.min_dist, method="Distance")
+				entity = entity.Dijkstra(curr_position, next_waypoint, entity.paths.max_prob, method="Probability")	
 
 			elif heated is True:
 				# Use the heated map for path finding
-				agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.min_dist, method="Distance",    map=agent.heat_map)
-				agent = agent.Dijkstra(curr_position, next_waypoint, agent.paths.max_prob, method="Probability", map=agent.heat_map)	
+				entity = entity.Dijkstra(curr_position, next_waypoint, entity.paths.min_dist, method="Distance",    map=entity.heat_map)
+				entity = entity.Dijkstra(curr_position, next_waypoint, entity.paths.max_prob, method="Probability", map=entity.heat_map)	
 
 			if validate and prism_path is not None: 
 				# select the path through validation
-				agent = Simulation.__Validate(agent, prism_path)
+				entity = Simulation.__Validate(entity, prism_path)
 
 			else:
 				# select the highest probability path
-				agent.paths.selected = deepcopy(agent.paths.max_prob)
+				entity.paths.selected = deepcopy(entity.paths.max_prob)
 
-			agent.paths.selected.i_path = 0
+			entity.paths.selected.i_path = 0
 
 		# Based on the path distance, compute the estimated completion time based on the agent's speed
-		agent.paths.selected.time = agent.paths.selected.length / agent.dynamics.velocity
+		entity.paths.selected.time = entity.paths.selected.length / entity.dynamics.velocity
 
 		# Create a distance vector where each entry in the vector is a cumulative distance 
 		# value from the previous node. 
-		agent = Simulation.Path_Cummulative_Distance(agent)
+		entity = Simulation.Path_Cummulative_Distance(entity)
 
 		# If the curr_position == next_waypoint, the agent will remain in the same location
 		# but we still want to evaluate the path. 
 		if curr_position == next_waypoint:
-			agent.paths.selected.path.append(agent.paths.selected.path[0])
+			entity.paths.selected.path.append(entity.paths.selected.path[0])
 
-		print(f"The {agent.ID} begins task {agent.mission.t_task+1} and will path from node {curr_position} to node: {next_waypoint} using path {agent.paths.selected.path}")
+		print(f"The {entity.ID} begins task {entity.mission.t_task+1} and will path from node {curr_position} to node: {next_waypoint} using path {entity.paths.selected.path}")
 
-		return agent
+		return entity
 
 	# =============================================================================
 	# Validate the Path

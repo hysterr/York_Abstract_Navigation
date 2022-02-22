@@ -1,10 +1,37 @@
 ------------------------------------------------------------------------------------------------
 To do:
 ------------------------------------------------------------------------------------------------
-- Creating a more robust Environment.Heat_Map() method when the human isn't moving
-- Add wait statements for the robot 
 - Prevent the agent from moving if the human is located at the same node 
 - Prevent the agent from moving if the human is located on a connecting node
+
+------------------------------------------------------------------------------------------------
+2022-02-22:
+------------------------------------------------------------------------------------------------
+- Environment.Heat_Map()
+	- Added position of the human as function argument
+	- The heat map was not correctly identifying all edges because the connections variable only accounted for half of the edges, i.e., (edge 1 -> edge 2), but not (edge 2 -> edge 1). This is fixed by applying all of the reverse edges to the connection map list.
+	- Any edges which connect to the human's node or connect to the human's next predicted node are hard-coded with extreme risk:
+		- Success = 0, Return = 1, Fail = 0
+		- This should prevent path finding ever navigating to the human's position or the predicted human's position.
+
+- Maps.Bungalow()
+	- Adjusted some linear dimensions for the edges to transitions more realistic for minimum movement solutions 
+
+- Simulate.Step_Agent()
+	- Updates to the heat map give success probabilities of 0 for transitions where the agent should not go to. A check of this value allows the agent remain in the smae location if this situation occurs. 
+
+- Simulate.Step_Human()
+	- Fixed bug where if the human did creative movement, the history at the end of the method would crash. 
+	- A check is now performed inside the method as to whether the human has completed the path. This was previously performed inside the simulation loop of the main script. 
+
+- Simulate.Select_Path()
+	- Change input arguement 'agent' to 'entity' as to not confuse the class name being used as this method is also applied for the 'human'. 
+
+- Coop_Task_1.py
+	- A new simulation for debug/testing.
+	- This simulation will create a new path for the human and agent every discrete interval, and not just when the path does not exist or the phase ends.
+
+
 
 ------------------------------------------------------------------------------------------------
 2022-02-21:
