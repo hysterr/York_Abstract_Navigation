@@ -5,6 +5,31 @@ To do:
 - Prevent the agent from moving if the human is located on a connecting node
 
 ------------------------------------------------------------------------------------------------
+2022-02-24:
+------------------------------------------------------------------------------------------------
+- Simulate.Step_Agent()
+	- Added path printing statements to replace the suppressed statements in the Select_Path() method.
+
+- Simulate.Step_Human()
+	- Added path printing statements to replace the suppressed statements in the Select_Path() method.
+
+- Environment.Update_Heat()
+	- Fixed a bug which would cause values of overwriting to be performed due to changes made to the connections variable. 
+
+- Environment.Dijkstra()
+	- When the human is located at a node, the updating of the heat map adjusts the success probability of edges that connect to this node to be 0. This causes issues when the node in question is the only node on the path, and the agent cannot path around it. An example of this is the Bungalow() environment at node 8. If the human is blocking the way at node 8, a path cannot be created using Dijkstra's and this causes the simulation to crash. 
+	- To fix this, inside the Dijkstra() method, a check is performed to identify if the success value is 0, and if so, it is changed internally to the function to be 0.05. 
+
+------------------------------------------------------------------------------------------------
+2022-02-23:
+------------------------------------------------------------------------------------------------
+- Misc	
+	- Changed Coop_Task_1.py to Coop_Task.py and stored the old code Coop_Task_1.py in the experimental folder
+
+- Simulate.Select_Path()
+	- Since paths are created each step for both the human and agent, this created large print statements for new paths. A print statement has been introdued as an optional argument to allow or disable path update prints.
+
+------------------------------------------------------------------------------------------------
 2022-02-22:
 ------------------------------------------------------------------------------------------------
 - Environment.Heat_Map()

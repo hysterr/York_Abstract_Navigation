@@ -58,7 +58,7 @@ class Simulation:
 			# Move in the direction of one of the random nodes
 			init_position = human.dynamics.position
 			human.dynamics.position = connecting_nodes[randint(0, len(connecting_nodes)-1)]
-			print(f"\t[{human.mission.events+1}] The human moved 'off-path' from node {init_position} to {human.dynamics.position}")
+			print(f"\t[{human.mission.events+1}] The human moved from node {init_position} to {human.dynamics.position} (off path)")
 			curr_position = init_position
 			next_position = 0
 
@@ -90,7 +90,7 @@ class Simulation:
 
 					# The human progressed the path. 
 					else:
-						print(f"\t[{human.mission.events+1}] The human moved from node {curr_position} to {next_position} (on path)")
+						print(f"\t[{human.mission.events+1}] The human moved from node {curr_position} to {next_position} (on path) --> {human.paths.selected.path}")
 
 
 
@@ -103,8 +103,8 @@ class Simulation:
 
 		history = np.append(history, 
 		[
-				curr_position,					# Current node location
-				next_position, 					# Next node location in the path
+				curr_position,				# Current node location
+				next_position, 				# Next node location in the path
 				human.dynamics.position, 	# Final position of the agent after the step
 				0, 							# Probability of success for this step
 				0,							# Probability of return for this step
@@ -158,6 +158,7 @@ class Simulation:
 				# The agent holds its position...
 				agent.paths.selected.n_return += 1
 				print(f"\t[{agent.mission.events+1}] The agent does not move due to human uncertainty... (HOLD)")
+				unif = 0
 
 			else:
 				# The agent can move to its intended location... the human is not blocking the way
@@ -170,7 +171,7 @@ class Simulation:
 					agent.paths.selected.n_return = 0		# Reset the return counter
 
 					# Print update to console
-					print(f"\t[{agent.mission.events+1}] The agent moved from node {curr_node} to {next_node} (Success)")
+					print(f"\t[{agent.mission.events+1}] The agent moved from node {curr_node} to {next_node} (Success) --> {agent.paths.selected.path}")
 				
 				elif unif <= (p_success + p_return): 
 					# The agent fails to move to the next node and returns to the original node
@@ -256,7 +257,7 @@ class Simulation:
 	# Paths are stored within the agent's path class (agent.paths) and are selected 
 	# based on a PRISM validation analysis. 
 	# =============================================================================
-	def Select_Path(entity, prism_path=None, validate=True, heated=False):
+	def Select_Path(entity, prism_path=None, validate=True, heated=False, print_output=True):
 		# We have two classes of agents ("agent" and "human") which require different 
 		# processes.
 		if entity.ID == "Human":
@@ -303,7 +304,8 @@ class Simulation:
 		if curr_position == next_waypoint:
 			entity.paths.selected.path.append(entity.paths.selected.path[0])
 
-		print(f"The {entity.ID} begins task {entity.mission.t_task+1} and will path from node {curr_position} to node: {next_waypoint} using path {entity.paths.selected.path}")
+		if print_output is True:
+			print(f"The {entity.ID} begins task {entity.mission.t_task+1} and will path from node {curr_position} to node: {next_waypoint} using path {entity.paths.selected.path}")
 
 		return entity
 

@@ -10,7 +10,7 @@ from random import randint, uniform
 # =============================================================================
 ''' The environment creates an interface for the entity which stores information 
     relating to the entities interpretation of the environment. The graph class 
-    also creates all connections and maps for the environment, and includes path 
+    also creates all connections and maps for the environment, and includes path
     finding using Dijkstra's algorithm.    
 '''
 class Graph:
@@ -277,7 +277,10 @@ class Graph:
     #   3. scale1: scaling function applied when the edge has a dual conflict
     #   4. scale2: scaling function applied when the edge has a single conflict
     # =============================================================================
-    def Update_Heat(self, human_path, human_position, scale1=0.5, scale2=0.90):
+    def Update_Heat(self, human, scale1=0.5, scale2=0.90):
+        human_path = human.paths.selected.path
+        human_position = human.dynamics.position
+
         # Create a heat map based on the default map.
         self.heat_map = deepcopy(self.map)
         inv_scale1 = 1 - scale1
@@ -293,11 +296,8 @@ class Graph:
                 partition = np.round(remainder / 3, 5) # Scale the remainder to apply as return and fail offsets
 
                 self.heat_map[c[0]][c[1]]["Success"] = success_scale # Update the success prob for first edge
-                self.heat_map[c[1]][c[0]]["Success"] = success_scale # Update the success prob for secnd edge
                 self.heat_map[c[0]][c[1]]["Return"] += partition*2   # Update the return state
-                self.heat_map[c[1]][c[0]]["Return"] += partition*2   # Update the return state
                 self.heat_map[c[0]][c[1]]["Fail"] += partition       # Update the fail state
-                self.heat_map[c[1]][c[0]]["Fail"] += partition       # Update the fail state
                 
             elif (c[0] in human_path) or (c[1] in human_path):
                 success_scale =  np.round(self.heat_map[c[0]][c[1]]["Success"] * scale2, 5)  # Scale the success probability
@@ -305,11 +305,8 @@ class Graph:
                 partition = np.round(remainder / 3, 5) # Scale the remainder to apply as return and fail offsets
 
                 self.heat_map[c[0]][c[1]]["Success"] = success_scale # Update the success prob for first edge
-                self.heat_map[c[1]][c[0]]["Success"] = success_scale # Update the success prob for secnd edge
                 self.heat_map[c[0]][c[1]]["Return"] += partition*2   # Update the return state
-                self.heat_map[c[1]][c[0]]["Return"] += partition*2   # Update the return state
                 self.heat_map[c[0]][c[1]]["Fail"] += partition       # Update the fail state
-                self.heat_map[c[1]][c[0]]["Fail"] += partition       # Update the fail state
             
             # We can't move AT ALL to the space the human is occupying... or we also want to avoid 
             # a node which is predicted to be the human's next pathing location...
@@ -318,8 +315,6 @@ class Graph:
                 self.heat_map[c[0]][c[1]]["Return"] = 1  # Set the return to 1
                 self.heat_map[c[0]][c[1]]["Fail"] = 0    # Set the fail state to 0
 
-            
- 
 
     # =============================================================================
     # Dijkstra's Algorithm for Path Finding
@@ -388,6 +383,14 @@ class Graph:
                     #  - and the values of distance, success.... etc within the map for this neighbour
                     neighbour = connection[0]
                     edge = connection[1]["Success"]# + connection[1]["Return"]
+
+                    # If the success of moving across an edge is 0, this means a path 
+                    # should not be created for this node. However, if this is a one-way 
+                    # route, and there is no alternative, we should still allow a path to 
+                    # be created, albeit with a very-very poor chance of success. Therefore, 
+                    # set the edge to be very small if this occurs.
+                    if edge == 0:
+                        edge = 0.05
 
                     # calculate the new probability to the neighbour
                     if curr_prob == 0:

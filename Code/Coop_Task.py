@@ -9,8 +9,20 @@ from copy import deepcopy
 from itertools import permutations
 import numpy as np
 import pandas as pd
+import sys
 
 PRISM_PATH = '/Users/jordanhamilton/Documents/PRISM/bin/prism'
+
+#%% ===========================================================================
+# CLI Input Arguments
+# =============================================================================
+# Input argument for running a simulation
+if sys.argv[1] == 'True':
+	Run_Sim = True
+else:
+	Run_Sim = False
+
+print_paths = False
 
 #%% ===========================================================================
 # Create Environment Objects
@@ -40,7 +52,7 @@ human.mission.start = human.dynamics.position
 agent.dynamics.position = 22 # current position of the robot (node)
 agent.mission.start = agent.dynamics.position
 
-agent.mission.tasks = [26, 11, 15, 4, 21]
+agent.mission.tasks = [26, 11, 8, 4, 21]
 agent.mission.headers = ['U', 'U', 'H', 'U', 'O']
 
 agent.mission.position = 0 # Set the index of the agent's task to 0. 
@@ -72,95 +84,89 @@ agent.mission.complete = False
 agent.mission.failed = False
 human.mission.c_phase = True
 
-agent.mission.complete = False
+# human.dynamics.position = 8
+# agent.dynamics.position = 4
+# human.paths.selected.path = [8, 8]
+# agent.Update_Heat(human)
+# agent.mission.phase = [4, 8]
+# agent = Simulation.Select_Path(agent, PRISM_PATH, validate=True, heated=True, print_output=print_paths)
 
-# Start the simulation inside a while loop
-while agent.mission.complete is False:
 
-	# If the c_phase boolean is True, that indicates a new phase will be started if one exists.
-	if agent.mission.c_phase is True and human.mission.c_phase is True: 
-		# Set the mission phase for the agent
-		agent.mission.phase = agent.mission.breakdown[agent.mission.i_phase-1]['Solutions']['Probability']['Paths'][0]
+if Run_Sim is True:
+	agent.mission.complete = False
 
-		# Set the mission phase for the human
-		human.mission.phase = agent.mission.breakdown[agent.mission.i_phase-1]["H"]
-	
-		# Reset the task index and complete boolean
-		agent.mission.i_task = 1 	  
-		agent.mission.c_phase = False 
+	# Start the simulation inside a while loop
+	while agent.mission.complete is False:
 
-		# Print statement for phase console information
-		print("-"*100)
-		print(f"Performing Phase {agent.mission.i_phase}/{agent.mission.n_phase} --> Agent Tasks: {agent.mission.phase} --- Human Tasks: {human.mission.phase}")
-		print("-"*100)
+		# If the c_phase boolean is True, that indicates a new phase will be started if one exists.
+		if agent.mission.c_phase is True and human.mission.c_phase is True: 
+			# Set the mission phase for the agent
+			agent.mission.phase = agent.mission.breakdown[agent.mission.i_phase-1]['Solutions']['Probability']['Paths'][0]
 
-		# If the human has a task to be performed in this phase, the length of the phase 
-		# will be greater than zero, and therefore we can start to produce a path for this 
-		# human's mission.
+			# Set the mission phase for the human
+			human.mission.phase = agent.mission.breakdown[agent.mission.i_phase-1]["H"]
+		
+			# Reset the task index and complete boolean
+			agent.mission.i_task = 1 	  
+			agent.mission.c_phase = False 
+
+			# Print statement for phase console information
+			print("-"*100)
+			print(f"Performing Phase {agent.mission.i_phase}/{agent.mission.n_phase} --> Agent Tasks: {agent.mission.phase} --- Human Tasks: {human.mission.phase}")
+			print("-"*100)
+
+			# If the human has a task to be performed in this phase, the length of the phase 
+			# will be greater than zero, and therefore we can start to produce a path for this 
+			# human's mission.
+			if len(human.mission.phase) > 0:
+				human.paths.selected.path = None
+				human.mission.c_phase = False
+				print(f"Requesting the human performs task at node {human.mission.phase[0]}")
+
+		# Create path for the human 
 		if len(human.mission.phase) > 0:
-			human.paths.selected.path = None
-			human.mission.c_phase = False
-			print(f"Requesting the human performs task at node {human.mission.phase[0]}")
-
-	# Create a path for the human if one does not exist. A path is created normally if the 
-	# agent has a task to perform in the current phase, otherwise a path is created artificially 
-	# by keeping the human at the same location.
-	if human.paths.selected.path is None or human.paths.selected.off_path is True:
-		if len(human.mission.phase) > 0:
-			human = Simulation.Select_Path(human, PRISM_PATH, validate=False, heated=False)
-			human.paths.selected.off_path = False # Reset the off path trigger
+			human = Simulation.Select_Path(human, PRISM_PATH, validate=False, heated=False, print_output=print_paths)
 		else:
 			human.paths.selected.path = [human.dynamics.position, human.dynamics.position]
 
-	# Check to see if the agent has a path selected, and create one if it doesn't.
-	if agent.paths.selected.path is None and agent.mission.c_phase is False:
-		agent.Update_Heat(human.paths.selected.path, human.dynamics.position)
-		agent = Simulation.Select_Path(agent, PRISM_PATH, validate=False, heated=True)
+		# Create path for the agent 
+		agent.Update_Heat(human)
+		agent = Simulation.Select_Path(agent, PRISM_PATH, validate=False, heated=True, print_output=print_paths)
 
-	# Update the heat map for the agent for this discrete step based
-	agent.Update_Heat(human.paths.selected.path, human.dynamics.position)
+		# Perform a discrete step along the current path.
+		human = Simulation.Step_Human(human, creativity=0)
+		agent = Simulation.Step_Agent(agent, map=agent.heat_map)
+		
+		agent.mission.events += 1
+		human.mission.events += 1
 
-	# Perform a discrete step along the current path.
-	human = Simulation.Step_Human(human, creativity=0.05)
-	agent = Simulation.Step_Agent(agent, map=agent.heat_map)
-	
-	agent.mission.events += 1
-	human.mission.events += 1
+		# Check to see if the mission has been completed based on the number of phases 
+		# that have been completed.
+		if agent.mission.i_phase > agent.mission.n_phase:
+			agent.mission.complete = True
 
-	# # If the human has an active phase task... check to see if the human reached the target location
-	# # during this step.			
-	# if len(human.mission.phase) > 0 and human.dynamics.position == human.mission.phase[human.mission.i_phase]:	
-	# 	human.mission.phase = []
-	# 	human.mission.c_phase = True
-	# 	print(f"\t[{human.mission.events+1}] The human reached the target location {human.dynamics.position}")
+		# If the agent suffered a failure during the step, end the mission.
+		if agent.mission.failed is True:
+			break
 
-	# Check to see if the mission has been completed based on the number of phases 
-	# that have been completed.
-	if agent.mission.i_phase > agent.mission.n_phase:
-		agent.mission.complete = True
-
-	# If the agent suffered a failure during the step, end the mission.
 	if agent.mission.failed is True:
-		break
+		print("-"*100)
+		print("Agent failed the mission.")
+		print("-"*100)
+	else:
+		print("-"*100)
+		print("Agent completed the mission.")
+		print("-"*100)
 
-if agent.mission.failed is True:
-	print("-"*100)
-	print("Agent failed the mission.")
-	print("-"*100)
-else:
-	print("-"*100)
-	print("Agent completed the mission.")
-	print("-"*100)
-
-history_agent = pd.DataFrame(agent.dynamics.history, columns=agent.dynamics.history_columns)
-history_human = pd.DataFrame(human.dynamics.history, columns=human.dynamics.history_columns)
+	history_agent = pd.DataFrame(agent.dynamics.history, columns=agent.dynamics.history_columns)
+	history_human = pd.DataFrame(human.dynamics.history, columns=human.dynamics.history_columns)
 
 
-# Options for printing to the console
-pd.set_option('display.max_rows', None)
-pd.set_option('display.max_columns', None)
-pd.set_option('display.width', None)
-pd.set_option('display.max_colwidth', None)
+	# Options for printing to the console
+	pd.set_option('display.max_rows', None)
+	pd.set_option('display.max_columns', None)
+	pd.set_option('display.width', None)
+	pd.set_option('display.max_colwidth', None)
 
 # history = agent.dynamics.history # Initiate history variable for ease
 # df = pd.DataFrame(history)#, columns = ['Column_A','Column_B','Column_C'])
