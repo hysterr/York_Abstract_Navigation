@@ -134,11 +134,18 @@ if Run_Sim is True:
 		agent = Simulation.Select_Path(agent, PRISM_PATH, validate=False, heated=True, print_output=print_paths)
 
 		# Perform a discrete step along the current path.
-		human = Simulation.Step_Human(human, creativity=0)
+		human = Simulation.Step_Human(human, creativity=0.05)
 		agent = Simulation.Step_Agent(agent, map=agent.heat_map)
+
+		
 		
 		agent.mission.events += 1
 		human.mission.events += 1
+
+		if agent.mission.n_stuck >= 5:
+			print("-"*100)
+			print(f"The agent has been stuck in location {agent.dynamics.position} for 5 steps with the human located at {human.dynamics.position}. Mission will end.")
+			agent.mission.failed = True
 
 		# Check to see if the mission has been completed based on the number of phases 
 		# that have been completed.

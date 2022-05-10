@@ -567,6 +567,7 @@ class Graph:
             self.failed = False     # Boolean for whether the mission failed.
             self.mission = None     # When the mission order has been selected... it goes here! 
             self.time = 0           # Timer for mission progress
+            self.n_stuck = 0       # Counter for number of return states.
 
             # Each task is comprised of a series of locations defined by nodes 
             # within the environment. Each task is assigned a header which defines 

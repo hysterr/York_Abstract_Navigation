@@ -147,3 +147,101 @@ def Bungalow(risk_matrix):
         ]
     
     return connections
+
+def CSI_Cobot(risk_matrix):
+    # The connections for the environment compiled as a list of lists. Each list 
+    # within a list contains four peices of information: 
+    #   1. starting node
+    #   2. connecting node
+    #   3. Linear distance 
+    #   4. Risk
+    d1 = 0.25
+    d2 = 0.50
+    d3 = 0.75
+    d4 = 1.00
+    d5 = 1.50
+    d6 = 2.00
+
+    connections = [
+        [ 1,  2, d5, risk_matrix["M"]],
+        [ 1, 18, d6, risk_matrix["M"]],
+        [ 2,  3, d3, risk_matrix["M"]],
+        [ 2,  9, d4, risk_matrix["M"]],
+        [ 3,  4, d5, risk_matrix["M"]],
+        [ 4,  5, d4, risk_matrix["M"]],
+        [ 5,  6, d5, risk_matrix["M"]],
+        [ 6,  7, d2, risk_matrix["M"]],
+        [ 6, 12, d3, risk_matrix["M"]],
+        [ 7,  8, d3, risk_matrix["M"]],
+        [ 7, 11, d4, risk_matrix["M"]], 
+        [ 7, 12, d3, risk_matrix["M"]],
+        [ 7, 13, d5, risk_matrix["M"]],
+        [ 8,  9, d3, risk_matrix["M"]], 
+        [ 8, 10, d4, risk_matrix["M"]],
+        [ 8, 11, d3, risk_matrix["M"]], 
+        [ 8, 12, d4, risk_matrix["M"]], 
+        [ 9, 10, d3, risk_matrix["M"]],
+        [10, 11, d3, risk_matrix["M"]],
+        [10, 16, d5, risk_matrix["M"]],
+        [10, 17, d6, risk_matrix["M"]],
+        [10, 18, d6, risk_matrix["M"]],
+        [11, 12, d3, risk_matrix["M"]],
+        [12, 13, d4, risk_matrix["M"]],
+        [13, 14, d5, risk_matrix["M"]],
+        [14, 15, d3, risk_matrix["M"]], 
+        [14, 25, d4, risk_matrix["M"]], 
+        [14, 26, d4, risk_matrix["M"]], 
+        [14, 27, d4, risk_matrix["M"]],
+        [14, 28, d5, risk_matrix["M"]],
+        [15, 16, d3, risk_matrix["M"]], 
+        [15, 23, d3, risk_matrix["M"]], 
+        [15, 25, d3, risk_matrix["M"]], 
+        [15, 26, d4, risk_matrix["M"]], 
+        [16, 17, d3, risk_matrix["M"]], 
+        [16, 22, d4, risk_matrix["M"]], 
+        [16, 23, d3, risk_matrix["M"]], 
+        [17, 18, d3, risk_matrix["M"]], 
+        [17, 19, d1, risk_matrix["M"]],
+        [18, 19, d2, risk_matrix["M"]],
+        [19, 20, d5, risk_matrix["M"]], 
+        [20, 21, d3, risk_matrix["M"]], 
+        [20, 33, d4, risk_matrix["M"]],
+        [21, 22, d3, risk_matrix["M"]],
+        [21, 23, d2, risk_matrix["M"]],
+        [21, 24, d3, risk_matrix["M"]],
+        [21, 31, d2, risk_matrix["M"]],
+        [22, 23, d1, risk_matrix["M"]], 
+        [22, 24, d3, risk_matrix["M"]], 
+        [23, 24, d2, risk_matrix["M"]], 
+        [23, 25, d3, risk_matrix["M"]], 
+        [24, 25, d3, risk_matrix["M"]], 
+        [24, 30, d4, risk_matrix["M"]],
+        [24, 31, d2, risk_matrix["M"]],
+        [25, 26, d3, risk_matrix["M"]], 
+        [25, 30, d2, risk_matrix["M"]],
+        [26, 27, d4, risk_matrix["M"]],
+        [26, 28, d4, risk_matrix["M"]],
+        [26, 29, d3, risk_matrix["M"]],
+        [27, 28, d3, risk_matrix["M"]],
+        [28, 29, d4, risk_matrix["M"]], 
+        [28, 38, d5, risk_matrix["M"]],
+        [29, 30, d4, risk_matrix["M"]], 
+        [29, 37, d5, risk_matrix["M"]], 
+        [29, 38, d4, risk_matrix["M"]],
+        [30, 31, d5, risk_matrix["M"]],
+        [30, 32, d5, risk_matrix["M"]],
+        [31, 32, d2, risk_matrix["M"]],
+        [32, 33, d3, risk_matrix["M"]],
+        [32, 34, d4, risk_matrix["M"]],
+        [32, 35, d3, risk_matrix["M"]],
+        [33, 34, d3, risk_matrix["M"]],
+        [33, 35, d4, risk_matrix["M"]], 
+        [34, 35, d4, risk_matrix["M"]],
+        [35, 36, d5, risk_matrix["M"]],
+        [36, 37, d5, risk_matrix["M"]],
+        [37, 38, d3, risk_matrix["M"]],
+
+    ]
+
+
+    return connections

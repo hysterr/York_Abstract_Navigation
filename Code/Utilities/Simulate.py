@@ -155,12 +155,16 @@ class Simulation:
 			# this value to the success, return and failure probabilities. 
 
 			if p_success == 0: 
-				# The agent holds its position...
-				agent.paths.selected.n_return += 1
+				# The agent holds its position since the selected actions indicates the human is located at 
+				# this node, or the probability of success is far too low. 
+				agent.mission.n_stuck += 1
 				print(f"\t[{agent.mission.events+1}] The agent does not move due to human uncertainty... (HOLD)")
 				unif = 0
 
 			else:
+				# We aren't stuck, reset the counter. 
+				agent.mission.n_stuck = 0
+
 				# The agent can move to its intended location... the human is not blocking the way
 				total_p = p_success + p_return + p_fail
 				unif = uniform(0, total_p) 
