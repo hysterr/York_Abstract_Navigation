@@ -13,13 +13,13 @@ def Risk():
     
     risk_matrix = {
         "L"  : 0.999,
-        "ML" : 0.990,
-        "M"  : 0.985,
-        "MH" : 0.970,
-        "HL" : 0.955,
-        "HM" : 0.950,
-        "H"  : 0.945,
-        "HH" : 0.940,
+        "ML" : 0.995,
+        "M"  : 0.990,
+        "MH" : 0.985,
+        "HL" : 0.975,
+        "HM" : 0.970,
+        "H"  : 0.950,
+        "HH" : 0.930,
         "VH" : 0.920, 
     }
 
@@ -84,12 +84,12 @@ def Bungalow(risk_matrix):
     #   3. Linear distance 
     #   4. Risk
     connections = [
-            [1, 2, 0.7,  risk_matrix["L"]],
+            [1, 2, 0.7,  risk_matrix["ML"]],
             [1, 4, 1.2,  risk_matrix["ML"]],
-            [1, 8, 2.2,  risk_matrix["L"]],
+            [1, 8, 2.0,  risk_matrix["ML"]],
             [2, 3, 0.8,  risk_matrix["HL"]],
-            [2, 4, 1.2,  risk_matrix["L"]],
-            [2, 8, 2.8,  risk_matrix["ML"]],
+            [2, 4, 1.2,  risk_matrix["ML"]],
+            [2, 8, 2.2,  risk_matrix["ML"]],
             [4, 5, 0.7,  risk_matrix["HM"]],
             [4, 6, 0.8,  risk_matrix["HM"]],
             [4, 7, 0.7,  risk_matrix["HL"]],
@@ -99,8 +99,8 @@ def Bungalow(risk_matrix):
             [6, 7, 0.3,  risk_matrix["HL"]],
             [8, 9, 0.5,  risk_matrix["MH"]],
             [8, 10, 0.8, risk_matrix["HL"]],
-            [8, 11, 0.4, risk_matrix["MH"]],
-            [8, 12, 1.4, risk_matrix["HM"]],
+            [8, 11, 0.7, risk_matrix["MH"]],
+            [8, 12, 1.2, risk_matrix["HM"]],
             [9, 10, 0.7, risk_matrix["HL"]],
             [9, 11, 1.3, risk_matrix["HM"]],
             [9, 12, 1.3, risk_matrix["HM"]],
@@ -144,9 +144,15 @@ def Bungalow(risk_matrix):
             [26, 30, 0.7, risk_matrix["MH"]],
             [27, 28, 0.3, risk_matrix["ML"]],
             [29, 30, 0.4, risk_matrix["ML"]],
-        ]
+    ]
     
-    return connections
+    # Create safe locations for the environment where the robot can request 
+    # the human move to in the event that the human blocks the robot's path
+    # of if the human is located at a node that the agent wants to occupy. 
+    safe_locations = [13, 14, 20, 24]
+
+    return connections, safe_locations
+
 
 def CSI_Cobot(risk_matrix):
     # The connections for the environment compiled as a list of lists. Each list 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from Utilities.Environment import Prism
+from Utilities.Prism import Prism
 from copy import deepcopy
 from random import uniform, randint
 import numpy as np
@@ -37,14 +37,7 @@ class Simulation:
 	#	- Creativity: Probability that the human will not use the path and will 
 	#		instead take a creative route.
 	# =============================================================================
-	def Step_Human(human, creativity=0.05):
-		history = np.array([
-				human.mission.t_task,
-				human.mission.i_phase,
-				human.mission.i_task,
-				human.paths.selected.i_path,
-			])
-
+	def Step_Human(human, data, creativity=0.05, print_steps=False):
 		# The human has three moves of movement: (i) stay at the same location, 
 		# (ii) move to the next node along a path, and (iii) move randomly.
 		random_movement = uniform(0, 1)
@@ -58,9 +51,18 @@ class Simulation:
 			# Move in the direction of one of the random nodes
 			init_position = human.dynamics.position
 			human.dynamics.position = connecting_nodes[randint(0, len(connecting_nodes)-1)]
-			print(f"\t[{human.mission.events+1}] The human moved from node {init_position} to {human.dynamics.position} (off path)")
+			if print_steps:
+				print(f"\t[{human.mission.events+1}] The human moved from node {init_position} to {human.dynamics.position} (off path)")
 			curr_position = init_position
-			next_position = 0
+			# next_position = "n/a"
+
+			if len(human.paths.selected.path ) - 1 > human.paths.selected.i_path:
+				next_position = human.paths.selected.path[human.paths.selected.i_path+1]
+			else:
+				next_position = human.paths.selected.path[human.paths.selected.i_path]
+
+			state = "Creative"
+
 
 		# The human does not move randomly during this step, and instead moves 
 		# along a path (if one exists) or stays at the same location (if one does
@@ -86,34 +88,39 @@ class Simulation:
 					if human.dynamics.position == human.mission.phase[human.mission.i_phase]:
 						human.mission.phase = []
 						human.mission.c_phase = True
-						print(f"\t[{human.mission.events+1}] The human moved from node {curr_position} and reached the target location {human.dynamics.position}")
+						if print_steps:
+							print(f"\t[{human.mission.events+1}] The human moved from node {curr_position} and reached the target location {human.dynamics.position}")
 
 					# The human progressed the path. 
 					else:
-						print(f"\t[{human.mission.events+1}] The human moved from node {curr_position} to {next_position} (on path) --> {human.paths.selected.path}")
+						if print_steps:
+							print(f"\t[{human.mission.events+1}] The human moved from node {curr_position} to {next_position} (on path) --> {human.paths.selected.path}")
 
-
+				state = "Predicted"
 
 			# The human does not move during this step. 
 			else:
 				curr_position = human.paths.selected.path[human.paths.selected.i_path]
 				next_position = human.paths.selected.path[human.paths.selected.i_path]
-				print(f"\t[{human.mission.events+1}] The human remains at position {human.dynamics.position}") 
+				if print_steps:
+					print(f"\t[{human.mission.events+1}] The human remains at position {human.dynamics.position}") 
+				state = "Hold"
 
 
-		history = np.append(history, 
-		[
-				curr_position,				# Current node location
-				next_position, 				# Next node location in the path
-				human.dynamics.position, 	# Final position of the agent after the step
-				0, 							# Probability of success for this step
-				0,							# Probability of return for this step
-				0,							# Probability of fail for this step
-				0, 							# Uniform value used for step simulation
-		])
-		human.dynamics.history = np.vstack((human.dynamics.history, history))	
+		# Data logging for this step of the simulation
+		data['position start'] = curr_position
+		data['position predict'] = next_position
+		data['position final'] = human.dynamics.position
+		data['state'] = state
+		data['creativity'] = creativity
+		data['rand move'] = random_movement
+		data['path'] = human.paths.selected.path
+		data['Task ID'] = human.mission.t_task,
+		data['Phase ID'] = human.mission.i_phase,
+		data['Phase '] = human.mission.i_task,
+		data['Selected i Path'] = human.paths.selected.i_path,
 
-		return human
+		return human, data
 
 	# =============================================================================
 	# Step for the Agent
@@ -123,7 +130,7 @@ class Simulation:
 	# 	- agent: agent class 
 	# 	- map: map that the agent will use for the step. 
 	# =============================================================================
-	def Step_Agent(agent, map):
+	def Step_Agent(agent, data, map, print_steps=False):
 		# Create history array for data logging
 		history = np.array([
 				agent.mission.t_task, 			# Log the index of the missions sub-task
@@ -145,6 +152,8 @@ class Simulation:
 				p_return  = map[curr_node][next_node]["Return"]	# Return probability of the next transition	
 				p_fail    = map[curr_node][next_node]["Fail"]		# Fail probability of the next transition
 
+			# Agent is not moving this step, so set the transition probability of success 
+			# to be 1.0 and the failure states to 0.
 			else:
 				next_node = curr_node	# Set next node to be current node 
 				p_success = 1.0			# Set success to 1.0 since we do not need to move.
@@ -155,19 +164,21 @@ class Simulation:
 			# this value to the success, return and failure probabilities. 
 
 			if p_success == 0: 
-				# The agent holds its position since the selected actions indicates the human is located at 
-				# this node, or the probability of success is far too low. 
+				# The agent holds its position since the selected actions indicates the human is either located at 
+				# this node or the probability of success is far too low. 
 				agent.mission.n_stuck += 1
-				print(f"\t[{agent.mission.events+1}] The agent does not move due to human uncertainty... (HOLD)")
+				if print_steps:
+					print(f"\t[{agent.mission.events+1}] The agent does not move due to human uncertainty... (HOLD)")
 				unif = 0
+				state = "Hold"
 
 			else:
 				# We aren't stuck, reset the counter. 
 				agent.mission.n_stuck = 0
 
 				# The agent can move to its intended location... the human is not blocking the way
-				total_p = p_success + p_return + p_fail
-				unif = uniform(0, total_p) 
+				total_p = p_success + p_return + p_fail # this value should equal one... (hopefully)
+				unif = np.round(uniform(0, total_p), 5)
 				if unif <= p_success:
 					# The agent successfully moves to the next node
 					agent.paths.selected.i_path += 1 		# Update the position counter along the path
@@ -175,8 +186,10 @@ class Simulation:
 					agent.paths.selected.n_return = 0		# Reset the return counter
 
 					# Print update to console
-					print(f"\t[{agent.mission.events+1}] The agent moved from node {curr_node} to {next_node} (Success) --> {agent.paths.selected.path}")
-				
+					if print_steps:
+						print(f"\t[{agent.mission.events+1}] The agent moved from node {curr_node} to {next_node} (Success) --> {agent.paths.selected.path}")
+					state = "success"
+
 				elif unif <= (p_success + p_return): 
 					# The agent fails to move to the next node and returns to the original node
 					agent.paths.selected.n_return += 1
@@ -187,13 +200,17 @@ class Simulation:
 						agent.mission.failed = True
 
 					# Print update to console.
-					print(f"\t[{agent.mission.events+1}] The agent returned to node {curr_node} -- counter {agent.paths.selected.n_return} (Return)")
+					if print_steps:
+						print(f"\t[{agent.mission.events+1}] The agent returned to node {curr_node} -- counter {agent.paths.selected.n_return} (Return)")
+					state = "return"
 
 				else:
 					# The agent suffers a failure and the mission should end.
-					print(f"\t[{agent.mission.events+1}] The agent suffered a catatrophic failure when moving from node {curr_node} to {next_node}	(Fail) ")
+					if print_steps:
+						print(f"\t[{agent.mission.events+1}] The agent suffered a catatrophic failure when moving from node {curr_node} to {next_node}	(Fail) ")
 					# agent.mission.complete = True
 					agent.mission.failed = True
+					state = "fail"
 
 			# Check to see and see if the agent has reached the end of the current path.
 			# If the agent has reached the end of the current path, the agent needs a new 
@@ -222,7 +239,8 @@ class Simulation:
 		# If the phase has already been completed by the agent, the agent is most likely waiting for the 
 		# human to complete their part of the mission.
 		else:
-			print(f"\t[{agent.mission.events+1}] Agent waits for phase to be completed...")
+			if print_steps:
+				print(f"\t[{agent.mission.events+1}] Agent waits for phase to be completed...")
 			curr_node = agent.dynamics.position
 			next_node = None
 			p_success = 0
@@ -230,6 +248,21 @@ class Simulation:
 			p_fail = 0
 			unif = None
 						
+
+		# Append to the data dictionary
+		data['position start'] = curr_node
+		data['position ideal'] = next_node
+		data['position final'] = agent.dynamics.position
+		data['success'] = [p_success, 0, p_success]
+		data['return'] = [p_return, p_success, p_success+p_return]
+		data['fail'] = [p_fail, p_success+p_return, p_success + p_return + p_fail]
+		data['probability'] = unif
+		data['state'] = state
+		data['path'] = agent.paths.selected.path
+		data['path index'] = agent.paths.selected.i_path
+		data['Task ID'] = agent.mission.t_task
+		data['Phase Number'] = agent.mission.i_phase
+		data['Phase Task'] = agent.mission.i_task
 
 		# Create a history array which will be appended to the history at the end 
 		# of the current step. 
@@ -250,7 +283,32 @@ class Simulation:
 		# Update the history of the agent to the dynamics class 
 		agent.dynamics.history = np.vstack((agent.dynamics.history, history))					
 
-		return agent
+		return agent, data
+
+	# =============================================================================
+	# Human Request Redirection
+	# -----------------------------------------------------------------------------
+	# The method "Human_Redirect" occurs when the human is blocking the robot's 
+	# path or task node, with a request given to the human to redirect to a safe 
+	# location in the environment. 
+	# =============================================================================
+	def Human_Redirect(agent, safe_locations):
+		tasks = agent.mission.phase
+		task_ID = agent.mission.i_task
+
+		# We only want to prevent safe locatiosn being used in future tasks, so use 
+		# the current task ID to look into the future, not the past. 
+		remaining_tasks = tasks[task_ID]
+
+		random_selection = randint(0, len(safe_locations)-1)
+		selected_node = safe_locations[random_selection]
+
+		while selected_node in tasks:
+			random_selection = randint(0, len(safe_locations)-1)
+			selected_node = safe_locations[random_selection]
+
+		return selected_node			
+
 
 	# =============================================================================
 	# Select Path
@@ -368,8 +426,8 @@ class Simulation:
 	# 
 	#                   l1         l2          l3
 	# nodes        n1 ------> n2 ------> n3 ------> n4
-	# dists             3          2         4
-	# cum dists         3          5         9
+	# dists             3          2           4
+	# cum dists         3          5           9
 	# =============================================================================
 	def Path_Cummulative_Distance(agent):
 		# Create a cumulative distance vector for the path so we can keep track of the 

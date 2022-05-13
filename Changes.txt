@@ -3,6 +3,92 @@ To do:
 ------------------------------------------------------------------------------------------------
 - Prevent the agent from moving if the human is located at the same node 
 - Prevent the agent from moving if the human is located on a connecting node
+- Add "Request Relocation" when the human is blocking the agent's path. 
+
+
+------------------------------------------------------------------------------------------------
+2022-05-11: Creating Simulation Analyses
+------------------------------------------------------------------------------------------------
+- 	Separated the Prism class from Environment.py to its own file in Prism.py. 
+- 	Added a print function in the class Environment.py to allow for better terminal outputs of the
+	data array. For example, agent.Print(data, 1) will print all of the information in the first 
+	step of the simulation that is stored in the data dictionary. 
+
+-	Maps.py
+	-	Adjusted the values in the risk matrix to have better probbaility of success 
+	- 
+
+-	Simulation.py
+	-	Adjusted the Redirect_Human() method to use only future tasks for the safe location 
+		analysis, rather than using the entire task list in the current phase.
+
+- 	Mission.py
+	- Added a class Preset_Mission()
+	- Preset_Missions()
+		-	Enables preset missions for the bungalow environment to be created by the user 
+		- 	Method Mission_One(start, final) is the first method which surrounds an environment
+			monitoring mission.
+			-	Returns a task and headers variable which is interpreted by the simulation and 
+				mission environments. 
+
+-	Coop_Task.py
+	-	Added the simulation functionality with tqdm readout 
+	- 	Data arrays for the history are stored each simulation 
+	-	Data dictionaries for more detailed description of the human and agent are stored for 
+		each step and each simulation 
+	-	Optional print statements have been added to the Human_Step and Agent_Step, as well as 
+		print outs during the simuation for the paths. Turning these off prevents the simulation 
+		console from being littered with debugging information.
+
+-	Created a simulation data directory for storing large simulations
+
+-	Simulation performed on the ALMI server for the first mission with random start locations for
+	the human and the robot with 10,000 evaluations performed. 
+		- Human creativity set at 0.00 for this procedure. 
+
+-	Simulation performed on the ALMI server for the same procedure above, but the fail state for 
+	each transition has been removed. So the fail state always equals 0, and the return statement
+	is all that is accounted for. 
+
+
+------------------------------------------------------------------------------------------------
+2022-05-10: Creating Simulation Analyses
+------------------------------------------------------------------------------------------------
+- 	Coop_Task.py()
+	- 	Added additional dictionary storing and compilation of history at the end of the simulation 
+
+- 	Simulate.py()
+	- 	Both functions Step_Agent() and Step_Human() now take additional data structures as inputs 
+		and write specific results to each structure at each step. 
+	- 	Created a new method Human_Redict(agent, safe_locations) 
+		- 	allows the agent to request the human performs a redirect to a safe location in the 
+			event the human is blocking the path of the agent. 
+		- 	This requires knowledge of safe locations for the environment, which have been added 
+			to the environment map as a returned variable. 
+		- 	Safe location requests will not be applied to the human if the location corresponds 
+			with a task location that the robot should perform this phase.
+
+- 	Maps.py()
+	- 	For the bungalow environment, a list of safe locations has been identified and returned 
+		from the function for use in the redict feature. 
+		- 	This has not yet been added for other maps. 
+
+
+
+
+
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+								Big Break in Development
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+
+
+
 
 ------------------------------------------------------------------------------------------------
 2022-02-24:

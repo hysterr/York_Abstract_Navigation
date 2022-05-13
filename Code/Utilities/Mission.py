@@ -282,6 +282,22 @@ class Mission:
 	   
 	   
 	   
+# =============================================================================
+# Preset mission classes
+# ============================================================================= 
+class Preset_Missions:
+	def Mission_One(start, final):
+		# The first mission will simulate an environment monitoring procedure
+		# where the robot moves between rooms in the environment and checks to 
+		# to sure that no issues or dangers are present. 
+		#
+		# During this mission, the human is free to roam the environment and 
+		# will not be allocated any missions to perform. 
+		tasks = [start, 3, 6, 9, 12, 16, 24, 28, 29, final]
+		headers = ['O', 'U', 'U', 'U', 'U', 'U', 'U', 'U', 'U', 'O']  
+
+		return tasks, headers 
+
 	   
 	   
 	   
@@ -309,10 +325,4 @@ class Mission:
 	   
 	   
 	   
-	   
-	   
-	   
-	   
-	   
-	   
-	   
+   
