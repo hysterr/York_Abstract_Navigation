@@ -294,6 +294,7 @@ class Preset_Missions:
 		# During this mission, the human is free to roam the environment and 
 		# will not be allocated any missions to perform. 
 		tasks = [start, 3, 6, 9, 12, 16, 24, 28, 29, final]
+		
 		headers = ['O', 'U', 'U', 'U', 'U', 'U', 'U', 'U', 'U', 'O']  
 
 		return tasks, headers 

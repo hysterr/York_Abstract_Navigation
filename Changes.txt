@@ -7,6 +7,42 @@ To do:
 
 
 ------------------------------------------------------------------------------------------------
+2022-05-17:
+------------------------------------------------------------------------------------------------
+-	Changes to the Simulate.Human_Redirect() method
+	-	Safe locations are removed based on whether the locations exists along the agent's 
+		current path or in the agent's future task list for this phase. 
+	-	If no safe locations exist, a secondary evaluation is performed to try and find a 
+		location in the environment which the human can redirect to.
+
+
+------------------------------------------------------------------------------------------------
+2022-05-16:
+------------------------------------------------------------------------------------------------
+-	Created Data_Analysis.py which acts as an interactive script for analysing the data obtained 
+	the simulations conducted
+		- Fuctions for loading and analysing the data 
+
+-	Based on the results, the robot/agent seems to have failures occurring due to human 
+	interaction, with failures increasing almost linearly with creativity. 
+	The agent also has no threshold for movement, so it will take chances on a move which has a 
+	success value (Ps) of less than 90%, which causes failures to occur frequently.
+
+-	Fixed a bug in the simuation where if a redirect was called by the robot and the proposed 
+	location was only 1 step away from the human's current position, the update would not allow 
+	the redirect to be completed before the next one was initiated. By introducing a variable 
+	called "prev_state" which looks to ensure that the previous step was not a "redirect", the 
+	human is allowed to finish moving before a new redirect is demanded. 
+
+- 	Created a new file "Coop_Task_Single.py" for simulating single runs of the process, allowing 
+	"Coop_Task.py" to be used for data mining and running batch simulations. 
+
+- 	Adjusted Simulate.Step_Agent() to prevent the agent from performing an action if the Ps value
+	(probability of success) is less than 90% (Line 165). 
+
+
+
+------------------------------------------------------------------------------------------------
 2022-05-11: Creating Simulation Analyses
 ------------------------------------------------------------------------------------------------
 - 	Separated the Prism class from Environment.py to its own file in Prism.py. 
@@ -45,6 +81,7 @@ To do:
 -	Simulation performed on the ALMI server for the first mission with random start locations for
 	the human and the robot with 10,000 evaluations performed. 
 		- Human creativity set at 0.00 for this procedure. 
+		- Results showed 9818 success and 182 failure (5 apparant failures where the robot got stuck)
 
 -	Simulation performed on the ALMI server for the same procedure above, but the fail state for 
 	each transition has been removed. So the fail state always equals 0, and the return statement

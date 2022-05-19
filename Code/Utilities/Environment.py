@@ -279,7 +279,7 @@ class Graph:
     #   3. scale1: scaling functionapplied when the edge has a dual conflict
     #   4. scale2: scaling function applied when the edge has a single conflict
     # =============================================================================
-    def Update_Heat(self, human, scale1=0.5, scale2=0.90):
+    def Update_Heat(self, human, scale1=0.5, scale2=0.95):
         human_path = human.paths.selected.path
         human_position = human.dynamics.position
 

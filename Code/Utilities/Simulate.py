@@ -162,8 +162,7 @@ class Simulation:
 
 			# Perform movement by creating a random floating value between 0 and 1 and comparing 
 			# this value to the success, return and failure probabilities. 
-
-			if p_success == 0: 
+			if p_success == 0 or p_success < 0.90: 
 				# The agent holds its position since the selected actions indicates the human is either located at 
 				# this node or the probability of success is far too low. 
 				agent.mission.n_stuck += 1
@@ -293,19 +292,44 @@ class Simulation:
 	# location in the environment. 
 	# =============================================================================
 	def Human_Redirect(agent, safe_locations):
+		# Use the task list
 		tasks = agent.mission.phase
 		task_ID = agent.mission.i_task
 
 		# We only want to prevent safe locatiosn being used in future tasks, so use 
 		# the current task ID to look into the future, not the past. 
-		remaining_tasks = tasks[task_ID]
+		remaining_tasks = tasks[task_ID:]
 
-		random_selection = randint(0, len(safe_locations)-1)
-		selected_node = safe_locations[random_selection]
+		# We also do not want the agent to ask for redirection to a node which exists 
+		# on the agent's current path.
+		for p_task in agent.paths.selected.path:
+			if p_task not in remaining_tasks:
+				remaining_tasks.append(p_task)
 
-		while selected_node in tasks:
-			random_selection = randint(0, len(safe_locations)-1)
-			selected_node = safe_locations[random_selection]
+		# Remove a location from the safe_locations list if the location is unavailable 
+		# due to it being present in the remaining_tasks variable. 
+		for l in reversed(safe_locations):
+			if l in remaining_tasks:
+				safe_locations.remove(l)
+
+		# If the number of safe location is zero, that means we cannot issue a redirect.
+		# in that scenario, we should ask the human to move to a location which isn't 
+		# identified as being safe, but does not obstruct the operation of the robot 
+		if len(safe_locations) == 0:
+			# Create a list of all locations in the environment 
+			avail_locations = [i for i in range(1, len(agent.map)+1)]
+
+			# remove all conflicting locations 
+			for l in reversed(avail_locations):
+				if l in remaining_tasks:
+					avail_locations.remove(l)
+
+			# Select a random node based on the remaining available locations
+			selected_node = avail_locations[randint(0, len(avail_locations)-1)]
+
+		else:
+			# Randomly select a location from the remaining identified safe locations
+			selected_node = safe_locations[randint(0, len(safe_locations)-1)]
 
 		return selected_node			
 
