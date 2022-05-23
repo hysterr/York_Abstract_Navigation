@@ -130,107 +130,134 @@ To do:
 ------------------------------------------------------------------------------------------------
 2022-02-24:
 ------------------------------------------------------------------------------------------------
-- Simulate.Step_Agent()
-	- Added path printing statements to replace the suppressed statements in the Select_Path() method.
+- 	Simulate.Step_Agent()
+	- 	Added path printing statements to replace the suppressed statements in the Select_Path() 
+		method.
 
-- Simulate.Step_Human()
-	- Added path printing statements to replace the suppressed statements in the Select_Path() method.
+- 	Simulate.Step_Human()
+	- 	Added path printing statements to replace the suppressed statements in the Select_Path() 
+		method.
 
-- Environment.Update_Heat()
-	- Fixed a bug which would cause values of overwriting to be performed due to changes made to the connections variable. 
+- 	Environment.Update_Heat()
+	- 	Fixed a bug which would cause values of overwriting to be performed due to changes made 
+		to the connections variable. 
 
-- Environment.Dijkstra()
-	- When the human is located at a node, the updating of the heat map adjusts the success probability of edges that connect to this node to be 0. This causes issues when the node in question is the only node on the path, and the agent cannot path around it. An example of this is the Bungalow() environment at node 8. If the human is blocking the way at node 8, a path cannot be created using Dijkstra's and this causes the simulation to crash. 
-	- To fix this, inside the Dijkstra() method, a check is performed to identify if the success value is 0, and if so, it is changed internally to the function to be 0.05. 
+- 	Environment.Dijkstra()
+	- 	When the human is located at a node, the updating of the heat map adjusts the success 
+		probability of edges that connect to this node to be 0. This causes issues when the node 
+		in question is the only node on the path, and the agent cannot path around it. An example 
+		of this is the Bungalow() environment at node 8. If the human is blocking the way at node 8, 
+		a path cannot be created using Dijkstra's and this causes the simulation to crash. 
+	- 	To fix this, inside the Dijkstra() method, a check is performed to identify if the success 
+		value is 0, and if so, it is changed internally to the function to be 0.05. 
 
 ------------------------------------------------------------------------------------------------
 2022-02-23:
 ------------------------------------------------------------------------------------------------
-- Misc	
-	- Changed Coop_Task_1.py to Coop_Task.py and stored the old code Coop_Task_1.py in the experimental folder
+- 	Misc	
+	- 	Changed Coop_Task_1.py to Coop_Task.py and stored the old code Coop_Task_1.py in the 
+		experimental folder
 
-- Simulate.Select_Path()
-	- Since paths are created each step for both the human and agent, this created large print statements for new paths. A print statement has been introdued as an optional argument to allow or disable path update prints.
+- 	Simulate.Select_Path()
+	- 	Since paths are created each step for both the human and agent, this created large print 
+		statements for new paths. A print statement has been introdued as an optional argument to 
+		allow or disable path update prints.
 
 ------------------------------------------------------------------------------------------------
 2022-02-22:
 ------------------------------------------------------------------------------------------------
-- Environment.Heat_Map()
-	- Added position of the human as function argument
-	- The heat map was not correctly identifying all edges because the connections variable only accounted for half of the edges, i.e., (edge 1 -> edge 2), but not (edge 2 -> edge 1). This is fixed by applying all of the reverse edges to the connection map list.
-	- Any edges which connect to the human's node or connect to the human's next predicted node are hard-coded with extreme risk:
-		- Success = 0, Return = 1, Fail = 0
-		- This should prevent path finding ever navigating to the human's position or the predicted human's position.
+- 	Environment.Heat_Map()
+	- 	Added position of the human as function argument
+	- 	The heat map was not correctly identifying all edges because the connections variable only 
+		accounted for half of the edges, i.e., (edge 1 -> edge 2), but not (edge 2 -> edge 1). 
+		This is fixed by applying all of the reverse edges to the connection map list.
+	- 	Any edges which connect to the human's node or connect to the human's next predicted node 
+		are hard-coded with extreme risk:
+		- 	Success = 0, Return = 1, Fail = 0
+		- 	This should prevent path finding ever navigating to the human's position or the predicted 
+			human's position.
 
-- Maps.Bungalow()
-	- Adjusted some linear dimensions for the edges to transitions more realistic for minimum movement solutions 
+- 	Maps.Bungalow()
+	- 	Adjusted some linear dimensions for the edges to transitions more realistic for minimum 
+		movement solutions 
 
-- Simulate.Step_Agent()
-	- Updates to the heat map give success probabilities of 0 for transitions where the agent should not go to. A check of this value allows the agent remain in the smae location if this situation occurs. 
+- 	Simulate.Step_Agent()
+	- 	Updates to the heat map give success probabilities of 0 for transitions where the agent should 
+		not go to. A check of this value allows the agent remain in the smae location if this situation 
+		occurs. 
 
-- Simulate.Step_Human()
-	- Fixed bug where if the human did creative movement, the history at the end of the method would crash. 
-	- A check is now performed inside the method as to whether the human has completed the path. This was previously performed inside the simulation loop of the main script. 
+- 	Simulate.Step_Human()
+	- 	Fixed bug where if the human did creative movement, the history at the end of the 
+		method would crash. 
+	- 	A check is now performed inside the method as to whether the human has completed the path. 
+		This was previously performed inside the simulation loop of the main script. 
 
-- Simulate.Select_Path()
-	- Change input arguement 'agent' to 'entity' as to not confuse the class name being used as this method is also applied for the 'human'. 
+- 	Simulate.Select_Path()
+	- 	Change input arguement 'agent' to 'entity' as to not confuse the class name being used as 
+		this method is also applied for the 'human'. 
 
-- Coop_Task_1.py
-	- A new simulation for debug/testing.
-	- This simulation will create a new path for the human and agent every discrete interval, and not just when the path does not exist or the phase ends.
+- 	Coop_Task_1.py
+	- 	A new simulation for debug/testing.
+	- 	This simulation will create a new path for the human and agent every discrete interval, 
+		and not just when the path does not exist or the phase ends.
 
 
 
 ------------------------------------------------------------------------------------------------
 2022-02-21:
 ------------------------------------------------------------------------------------------------
-- Simulation.Step_Human()
-	- Implemented the first version of the function 
-	- Random movements are also possible for the human based on the optional creativity argument
-		- Human can ignore paths and creatively move to other connected nodes
-		- When this happens, an "off-path" flag is raised (human.mission.off_path) to instruct the agent the human moved off-path. 
-	- Path movement
-		- if the human has an active phase task and a proposed path to that task location, the human moves along the path, cooperatively
-	- If the human does not have a mission task to perform, the human stays in the same location unless the creative movement value is triggered. 
+- 	Simulation.Step_Human()
+	- 	Implemented the first version of the function 
+	- 	Random movements are also possible for the human based on the optional creativity argument
+		- 	Human can ignore paths and creatively move to other connected nodes
+		- 	When this happens, an "off-path" flag is raised (human.mission.off_path) to instruct 
+			the agent the human moved off-path. 
+	- 	Path movement
+		- 	If the human has an active phase task and a proposed path to that task location, the 
+			human moves along the path, cooperatively
+	- 	If the human does not have a mission task to perform, the human stays in the same location 
+		unless the creative movement value is triggered. 
 
-- Coop_Task.py
-	- Human discrete steps applied (see Simulation.Step_Human() changes above)
-	- If the human has a task to perform in a phase, the agent will wait for the human to complete their task before starting the next phase. 
-	- Whilst the agent is waiting, no new paths are created for the agent.
-	- When the human moves along the path, the previous node is removed from the path, allowing the agent.Update_Heat() method to discount previous locations from the heat map.
+- 	Coop_Task.py
+	- 	Human discrete steps applied (see Simulation.Step_Human() changes above)
+	- 	If the human has a task to perform in a phase, the agent will wait for the human to complete 
+		their task before starting the next phase. 
+	- 	Whilst the agent is waiting, no new paths are created for the agent.
+	- 	When the human moves along the path, the previous node is removed from the path, allowing 
+		the agent.Update_Heat() method to discount previous locations from the heat map.
 
 ------------------------------------------------------------------------------------------------
 2022-02-18:
 ------------------------------------------------------------------------------------------------
-- Simulation.Select_Path()
-	- Called separately for agent and human 
-	- Allows one entities path to be changed/inspected without impacting the other. 
+- 	Simulation.Select_Path()
+	- 	Called separately for agent and human 
+	- 	Allows one entities path to be changed/inspected without impacting the other. 
 
-- Simulation.Step() 
-	- Changed to Simulation.Step_Agent() for the agent 
-		- Takes map input as conditional to allow heated_map probabilities
-		- Varies the uniform probability value based on summated probilities
-		- Does not interact with the human class, that will be applied in the main script
-	- Currently not inplemented for the human
+- 	Simulation.Step() 
+	- 	Changed to Simulation.Step_Agent() for the agent 
+		- 	Takes map input as conditional to allow heated_map probabilities
+		- 	Varies the uniform probability value based on summated probilities
+		- 	Does not interact with the human class, that will be applied in the main script
+	- 	Currently not inplemented for the human
 
-- Environment.Update_Heat()
-	- Bug fix for scaling issue which only worked for 0.5 scale factors. 
-	- Adjusted how the method applies heat to connections.
-		- Previously, only one constant was required, now two have been applied
-			- Scale1 variable applied to both connections
-			- Scale2 variable applied to single connection
-	- Risk factor reduces the "Success" rate and is now split across the "Return" and "Fail" states
-		- 2/3 applied to "Return"
-		- 1/3 applied to "Fail"
+- 	Environment.Update_Heat()
+	- 	Bug fix for scaling issue which only worked for 0.5 scale factors. 
+	- 	Adjusted how the method applies heat to connections.
+		- 	Previously, only one constant was required, now two have been applied
+			- 	Scale1 variable applied to both connections
+			- 	Scale2 variable applied to single connection
+	- 	Risk factor reduces the "Success" rate and is now split across the "Return" and "Fail" states
+		- 	2/3 applied to "Return"
+		- 	1/3 applied to "Fail"
 
-- Coop_Task.py 
-	- Simulation procedure has been adjusted to account for the changes described above:
-		1. perform current phase identification
-		2. assign human tasks 
-		3. perform path finding for human 
-		4. update heat for agent path 
-		5. perform path finding for agent
-		6. discrete step for agent (no step for human yet...)
+- 	Coop_Task.py 
+	- 	Simulation procedure has been adjusted to account for the changes described above:
+			1. perform current phase identification
+			2. assign human tasks 
+			3. perform path finding for human 
+			4. update heat for agent path 
+			5. perform path finding for agent
+			6. discrete step for agent (no step for human yet...)
 
 
 
